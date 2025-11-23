@@ -1,0 +1,153 @@
+package br.com.ifba.solicitacao.service;
+
+import br.com.ifba.solicitacao.entity.Solicitacao;
+import br.com.ifba.solicitacao.repository.SolicitacaoRepository;
+import br.com.ifba.usuario.entity.Usuario;
+import br.com.ifba.util.RegraNegocioException;
+import br.com.ifba.util.StringUtil;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class SolicitacaoService implements SolicitacaoIService {
+
+    private final SolicitacaoRepository repo;
+
+    @Override
+    public Solicitacao save(Solicitacao solicitacao) {
+        validarSolicitacao(solicitacao);
+
+        // Garante que toda nova solicitação nasce SEM parceria solicitada,
+        // mesmo que o front envie "true" indevidamente
+        solicitacao.setSolicitouParceria(false);
+
+        try {
+            return repo.save(solicitacao);
+        } catch (DataIntegrityViolationException e) {
+            log.error("Violação de integridade ao salvar Solicitação: {}", solicitacao.getId(), e);
+            throw new RegraNegocioException("Dados inválidos ou solicitação já existe.");
+        } catch (RuntimeException e) {
+            log.error("Erro inesperado ao salvar Solicitação.", e);
+            throw new RegraNegocioException("Erro ao salvar Solicitação.");
+        }
+    }
+
+    @Override
+    public void delete(Long id) {
+        if (id == null || id <= 0) {
+            log.warn("Tentativa de excluir Solicitação com ID inválido: {}", id);
+            throw new RegraNegocioException("ID de Solicitação inválido.");
+        }
+        try {
+            repo.deleteById(id);
+        } catch (EmptyResultDataAccessException e) {
+            log.error("Solicitação não encontrada para exclusão (ID: {}).", id, e);
+            throw new RegraNegocioException("Solicitação não encontrada para exclusão.");
+        } catch (RuntimeException e) {
+            log.error("Erro inesperado ao excluir Solicitação.", e);
+            throw new RegraNegocioException("Erro ao excluir Solicitação.");
+        }
+    }
+
+    @Override
+    public List<Solicitacao> findAll() {
+        try {
+            return repo.findAll();
+        } catch (RuntimeException e) {
+            log.error("Erro ao buscar todas as Solicitações.", e);
+            throw new RegraNegocioException("Erro ao buscar Solicitações.");
+        }
+    }
+
+    @Override
+    public Solicitacao findById(Long id) {
+        if (id == null || id <= 0) {
+            log.warn("ID inválido fornecido para busca: {}", id);
+            throw new RegraNegocioException("ID inválido para busca.");
+        }
+        try {
+            return repo.findById(id).orElseThrow(() -> {
+                log.warn("Solicitação não encontrada para ID: {}", id);
+                return new RegraNegocioException("Solicitação não encontrada.");
+            });
+        } catch (RuntimeException e) {
+            log.error("Erro inesperado ao buscar Solicitação por ID.", e);
+            throw new RegraNegocioException("Erro ao buscar Solicitação por ID.");
+        }
+    }
+
+    @Override
+    public Optional<Solicitacao> findByUsuario(Usuario usuario) {
+        if (usuario == null || usuario.getId() == null) {
+            log.warn("Usuário inválido fornecido para busca de solicitação: {}", usuario);
+            return Optional.empty();
+        }
+
+        try {
+            return repo.findFirstByUsuario(usuario);
+        } catch (RuntimeException e) {
+            log.error("Erro inesperado ao buscar Solicitação para o usuário ID: {}", usuario.getId(), e);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public List<Solicitacao> findBySolicitouParceriaTrue() {
+        log.info("Buscando solicitações com parceria TRUE...");
+        List<Solicitacao> solicitacoes = repo.findBySolicitouParceriaTrue();
+
+        if (solicitacoes.isEmpty()) {
+            log.warn("Nenhuma solicitação com parceria TRUE encontrada.");
+        }
+        return solicitacoes;
+    }
+
+    @Override
+    public List<Solicitacao> findByNomeUsuarioComSolicitacaoAtiva(String nome) {
+        if (nome == null || nome.trim().isEmpty()) {
+            throw new IllegalArgumentException("Nome não pode ser nulo ou vazio.");
+        }
+
+        log.info("Buscando solicitações para usuários com nome '{}', parceria TRUE e usuário ativo...", nome);
+        return repo.findByUsuarioPessoaNomeContainingIgnoreCaseAndSolicitouParceriaTrueAndUsuarioAtivoTrue(nome);
+    }
+
+    @Override
+    public void validarSolicitacao(Solicitacao solicitacao) {
+        if (solicitacao == null) {
+            log.warn("Solicitação recebida é nula.");
+            throw new RegraNegocioException("A Solicitação não pode ser nula.");
+        }
+
+        // Validação do CNPJ
+        if (StringUtil.isNullOrEmpty(solicitacao.getCnpj())) {
+            log.warn("CNPJ da Solicitação é nulo ou vazio.");
+            throw new RegraNegocioException("O CNPJ é obrigatório.");
+        }
+
+        // Validação do nomeEmpresa
+        if (StringUtil.isNullOrEmpty(solicitacao.getNomeEmpresa())) {
+            log.warn("Nome da empresa da Solicitação é nulo ou vazio.");
+            throw new RegraNegocioException("O nome da empresa é obrigatório.");
+        }
+        if (!StringUtil.hasValidLength(solicitacao.getNomeEmpresa(), 3, 100)) {
+            log.warn("Nome da empresa fora do tamanho permitido: '{}'", solicitacao.getNomeEmpresa());
+            throw new RegraNegocioException("O nome da empresa deve ter entre 3 e 100 caracteres.");
+        }
+
+        // Validação do usuário associado
+        if (solicitacao.getUsuario() == null) {
+            log.warn("Solicitação sem usuário associado.");
+            throw new RegraNegocioException("A solicitação deve estar associada a um usuário.");
+        }
+    }
+}
+

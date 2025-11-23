@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -38,8 +39,8 @@ public class Usuario extends PersistenceEntity {
     private Pessoa pessoa;
 
     // Opcional: mappedBy
-    @OneToMany(mappedBy = "usuario")
-    private List<Solicitacao> solicitacoes;
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = false)
+    private List<Solicitacao> solicitacoes = new ArrayList<>();
 
     public Usuario() {
         this.ativo = true;

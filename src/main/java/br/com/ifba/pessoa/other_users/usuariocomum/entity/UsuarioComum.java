@@ -8,11 +8,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity
-@Table(name = "usuario_comum")
-@Getter @Setter
-@NoArgsConstructor
-public class UsuarioComum extends Pessoa {
-    @Column(nullable = true, unique = true)
-    private String cpf;
-}
+    @Entity
+    @Table(name = "usuario_comum")
+    @Getter @Setter
+    @NoArgsConstructor
+    public class UsuarioComum extends Pessoa {
+        @Column(unique = true)
+        private String cpf;
+    }

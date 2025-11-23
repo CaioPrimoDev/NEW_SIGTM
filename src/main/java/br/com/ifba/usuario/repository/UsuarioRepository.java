@@ -1,7 +1,10 @@
 package br.com.ifba.usuario.repository;
 
+import br.com.ifba.solicitacao.entity.Solicitacao;
 import br.com.ifba.usuario.entity.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,5 +20,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Usuario findByPessoaId(Long pessoaId);
 
     List<Usuario> findByPessoaNomeContainingIgnoreCase(String nome);
+
+    @Query("SELECT u.solicitacoes FROM Usuario u WHERE u.id = :id")
+    List<Solicitacao> findSolicitacoesByUsuarioId(@Param("id") Long id);
 }
 

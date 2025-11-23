@@ -2,35 +2,43 @@ package br.com.ifba.avaliacoes.entity;
 
 import br.com.ifba.infrastructure.entity.PersistenceEntity;
 import br.com.ifba.pontoturistico.entity.PontoTuristico;
+import br.com.ifba.usuario.entity.Usuario;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
+@Table(name = "avaliacao")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class Avaliacao extends PersistenceEntity {
 
     @NotBlank
     @Column(nullable = false)
     private String nomeAutor;
 
-    @Min(1) @Max(5)
     @Column(nullable = false)
     private int estrelas;
 
-    @Column(nullable = true, length = 2000)
+    @Column(nullable = false, length = 500)
     private String descricao;
 
-    @ManyToOne(optional = false, fetch = FetchType.LAZY) // Talvés eu tenha que mudar para EAGER
-    @JoinColumn(name = "ponto_turistico_id", nullable = false)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "ponto_turistico_id")
     private PontoTuristico pontoTuristico;
 
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
+
+    public Avaliacao(int estrelas, String descricao, PontoTuristico pontoTuristico, Usuario usuario) {
+        this.estrelas = estrelas;
+        this.descricao = descricao;
+        this.pontoTuristico = pontoTuristico;
+        this.usuario = usuario;
+        this.nomeAutor = usuario.getPessoa().getNome();
+    }
 }

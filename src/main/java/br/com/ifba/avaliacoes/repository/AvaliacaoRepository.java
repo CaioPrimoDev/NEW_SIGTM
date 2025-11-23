@@ -17,4 +17,10 @@ public interface AvaliacaoRepository extends JpaRepository<Avaliacao, Long> {
 
     // Piores avaliações (estrelas <= param) do ponto, ordenadas asc
     List<Avaliacao> findByPontoTuristicoIdAndEstrelasLessThanEqualOrderByEstrelasAsc(Long pontoId, int estrelas);
+
+    // Avaliações feitas por um usuário
+    List<Avaliacao> findByUsuarioId(Long usuarioId);
+
+    // Verifica se o usuário já avaliou o ponto turístico
+    boolean existsByUsuarioIdAndPontoTuristicoId(Long usuarioId, Long pontoId);
 }
