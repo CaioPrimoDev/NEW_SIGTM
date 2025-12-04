@@ -26,9 +26,8 @@ import java.util.Optional;
 
 /**
  *
- * @author User
+ * @author CaioP
  */
-@SuppressWarnings("OptionalGetWithoutIsPresent")
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -137,7 +136,7 @@ public class ParceiroService implements ParceiroIService {
         }
 
 
-        Optional<Parceiro> parceiro = Optional.empty(); // Inicializa com Optional vazio
+        Optional<Parceiro> parceiro; // Inicializa com Optional vazio
         try {
             parceiro = parceiroRepository.findByCnpj(cnpj);
 
@@ -219,8 +218,7 @@ public class ParceiroService implements ParceiroIService {
 
 
     @Override
-    public Usuario removerParceiria(Parceiro parceiro) {
-        if (parceiro == null) {
+    public Usuario removerParceiria(Parceiro parceiro) {        if (parceiro == null) {
             throw new RegraNegocioException("Parceiro inválido.");
         }
 
@@ -261,6 +259,4 @@ public class ParceiroService implements ParceiroIService {
 
         return usuario;
     }
-
-
 }

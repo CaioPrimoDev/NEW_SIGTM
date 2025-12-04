@@ -7,24 +7,20 @@ import br.com.ifba.usuario.entity.Usuario;
 import br.com.ifba.usuario.service.user.UsuarioService;
 import br.com.ifba.util.RegraNegocioException;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class TipoPromocaoService implements TipoPromocaoIService {
 
-    // Injeção do repositório que faz a comunicação com o banco
-    @Autowired
-    private TipoPromocaoRepository tipoPromocaoRepository;
+    private final TipoPromocaoRepository tipoPromocaoRepository;
 
-    @Autowired
-    private UsuarioService usuarioService;
+    private final UsuarioService usuarioService;
 
-    @Autowired
-    private UsuarioSession usuarioSession;
-    // Método auxiliar para validar permissões de cadastro
+    private final UsuarioSession usuarioSession;
     private void validarPermissaoCadastro() {
         Usuario usuarioLogado = usuarioSession.getUsuarioLogado();
 

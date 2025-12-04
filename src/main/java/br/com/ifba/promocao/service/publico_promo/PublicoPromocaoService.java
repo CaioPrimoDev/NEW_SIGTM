@@ -7,7 +7,7 @@ import br.com.ifba.usuario.entity.Usuario;
 import br.com.ifba.usuario.service.user.UsuarioService;
 import br.com.ifba.util.RegraNegocioException;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,17 +17,14 @@ import java.util.List;
  * @author Joice
  */
 @Service
+@RequiredArgsConstructor
 public class PublicoPromocaoService implements PublicoPromocaoIService {
 
+    private final PublicoPromocaoRepository publicoPromocaoRepository;
 
-    @Autowired
-    private PublicoPromocaoRepository publicoPromocaoRepository;
+    private final UsuarioService usuarioService;
 
-    @Autowired
-    private UsuarioService usuarioService;
-
-    @Autowired
-    private UsuarioSession usuarioSession;
+    private final UsuarioSession usuarioSession;
 
     private Usuario getUsuarioLogado() {
         Usuario usuarioLogado = usuarioSession.getUsuarioLogado();
@@ -52,6 +49,11 @@ public class PublicoPromocaoService implements PublicoPromocaoIService {
 
     @Override
     public PublicoPromocao save(PublicoPromocao publicoPromocao) {
+
+        if (!usuarioSession.isLogado()) {
+            throw new RegraNegocioException("Você precisa estar logado para criar promoções.");
+        }
+
         validarPermissaoCadastro();
 
         if (publicoPromocao.getNome() == null || publicoPromocao.getNome().trim().isEmpty()) {

@@ -8,26 +8,23 @@ import br.com.ifba.sessao.entity.UsuarioSession;
 import br.com.ifba.usuario.entity.Usuario;
 import br.com.ifba.util.StringUtil;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class PromocaoService implements PromocaoIService {
 
-    @Autowired
-    private PromocaoRepository promocaoRepository;
+    private final PromocaoRepository promocaoRepository;
 
-    @Autowired
-    private TipoPromocaoRepository tipoPromocaoRepository;
+    private final TipoPromocaoRepository tipoPromocaoRepository;
 
-    @Autowired
-    private UsuarioSession usuarioSession;
-
+    private final UsuarioSession usuarioSession;
     private static final Logger log = LoggerFactory.getLogger(PromocaoService.class);
 
     @Override

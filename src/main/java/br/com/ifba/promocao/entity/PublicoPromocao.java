@@ -1,5 +1,6 @@
 package br.com.ifba.promocao.entity;
 
+import br.com.ifba.infrastructure.entity.PersistenceEntity;
 import br.com.ifba.usuario.entity.Usuario;
 import jakarta.persistence.*;
 import lombok.*;
@@ -11,10 +12,7 @@ import lombok.*;
 @Getter //cria os métos getters
 @Setter //cria os métosdo setters
 @ToString // gera o método toString() para a classe
-public class PublicoPromocao {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class PublicoPromocao extends PersistenceEntity {
 
     // Campo obrigatório para título
     @Column(name = "nome", nullable = false)
