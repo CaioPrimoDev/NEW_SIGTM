@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping(value = "/pontos-turisticos", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class PontoTuristicoController {
 
     private final PontoTuristicoIService service;

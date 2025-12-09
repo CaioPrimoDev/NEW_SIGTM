@@ -21,7 +21,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     List<Usuario> findByPessoaNomeContainingIgnoreCase(String nome);
 
-    @Query("SELECT u.solicitacoes FROM Usuario u WHERE u.id = :id")
+    // JOIN para navegar na lista e retornar os objetos Solicitacao (alias 's')
+    @Query("SELECT s FROM Usuario u JOIN u.solicitacoes s WHERE u.id = :id")
     List<Solicitacao> findSolicitacoesByUsuarioId(@Param("id") Long id);
 }
 
