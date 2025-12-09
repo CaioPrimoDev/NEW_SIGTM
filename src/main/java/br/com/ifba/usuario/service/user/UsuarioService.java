@@ -70,6 +70,13 @@ public class UsuarioService implements UsuarioIService {
     }
 
     @Override
+    public Usuario saveAndFlush(Usuario usuario) {
+        // O flush força o Hibernate a executar o SQL (UPDATE/INSERT) no banco IMEDIATAMENTE.
+        // Isso é crucial na troca de tipo para evitar conflito de IDs na transação.
+        return UserRepo.saveAndFlush(usuario);
+    }
+
+    @Override
     @Transactional
     public Usuario save(Usuario usuario) {
         // Se precisar de validação final, chame aqui:

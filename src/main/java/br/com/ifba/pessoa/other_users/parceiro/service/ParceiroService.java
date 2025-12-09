@@ -5,6 +5,7 @@ import br.com.ifba.pessoa.entity.Pessoa;
 import br.com.ifba.pessoa.other_users.parceiro.entity.Parceiro;
 import br.com.ifba.pessoa.other_users.parceiro.repository.ParceiroRepository;
 import br.com.ifba.pessoa.other_users.usuariocomum.entity.UsuarioComum;
+import br.com.ifba.pessoa.other_users.usuariocomum.repository.UsuarioComumRepository;
 import br.com.ifba.pessoa.service.PessoaIService;
 import br.com.ifba.solicitacao.entity.Solicitacao;
 import br.com.ifba.solicitacao.service.SolicitacaoIService;
@@ -18,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
@@ -40,6 +42,8 @@ public class ParceiroService implements ParceiroIService {
     private final SolicitacaoIService solicitacaoService;
 
     private final TipoUsuarioIService tipoUsuarioService;
+
+    private final UsuarioComumRepository usuarioComumRepository;
 
     private final PessoaIService pessoaService;
 
@@ -174,46 +178,57 @@ public class ParceiroService implements ParceiroIService {
     }
 
     @Override
+    @Transactional // IMPORTANTE: Tudo deve ocorrer na mesma transação
     public Parceiro tornarParceiro(Usuario usuario) {
         if (usuario == null || usuario.getPessoa() == null) {
-            throw new BusinessException("Usuário ou dados pessoais inválidos para criar parceiro.");
+            throw new BusinessException("Usuário inválido.");
         }
 
-        // Obtém solicitação ANTES de alterar o usuário
+        // 1. Validar e Pegar Dados
         Solicitacao dadosSolicitacao = solicitacaoService.findByUsuario(usuario)
-                .orElseThrow(() -> new BusinessException("Nenhuma solicitação encontrada para este usuário."));
+                .orElseThrow(() -> new BusinessException("Nenhuma solicitação encontrada."));
 
-        // Garante que Pessoa é realmente um UsuarioComum
-        Pessoa pessoa = usuario.getPessoa();
-        if (!(pessoa instanceof UsuarioComum)) {
-            throw new BusinessException("A pessoa associada ao usuário não é um UsuarioComum.");
+        Pessoa pessoaAntiga = usuario.getPessoa();
+        if (!(pessoaAntiga instanceof UsuarioComum)) {
+            throw new BusinessException("Usuário já é parceiro ou de outro tipo.");
         }
+        UsuarioComum comumAntigo = (UsuarioComum) pessoaAntiga;
 
-        UsuarioComum pessoaBase = (UsuarioComum) pessoa;
+        // Guardar dados importantes antes de deletar (Memória)
+        String nome = comumAntigo.getNome();
+        String telefone = comumAntigo.getTelefone();
+        // String cpf = comumAntigo.getCpf(); // Se tiver CPF
 
-        // Obtém o tipo PARCEIRO
+        // 2. DESVINCULAR (Passo Crítico para evitar erro de FK)
+        usuario.setPessoa(null);
+        usuarioService.saveAndFlush(usuario); // Força a atualização no banco agora
+
+        // 3. DELETAR O USUÁRIO COMUM (Remove da tabela Pessoa e UsuarioComum)
+        // Você precisa ter o repository do UsuarioComum injetado
+        usuarioComumRepository.delete(comumAntigo);
+        usuarioComumRepository.flush(); // Garante que o ID foi liberado (ou deletado)
+
+        // 4. CRIAR O NOVO PARCEIRO (Geralmente terá um NOVO ID gerado automaticamente)
+        Parceiro novoParceiro = new Parceiro();
+        novoParceiro.setNome(nome);
+        novoParceiro.setTelefone(telefone);
+        novoParceiro.setCnpj(dadosSolicitacao.getCnpj());
+        novoParceiro.setNomeEmpresa(dadosSolicitacao.getNomeEmpresa());
+        // Se quiser tentar forçar o mesmo ID, seria complexo.
+        // Deixe o banco gerar um novo ID para evitar conflitos.
+
+        novoParceiro = parceiroRepository.save(novoParceiro); // Salva e gera ID
+
+        // 5. REVINCULAR AO USUÁRIO
         TipoUsuario tipoParceiro = tipoUsuarioService.findByNome("PARCEIRO");
 
-        // Cria Parceiro reutilizando o ID da Pessoa
-        Parceiro parceiro = new Parceiro();
-        parceiro.setId(pessoaBase.getId()); // mantém o mesmo ID da Pessoa
-        parceiro.setNome(pessoaBase.getNome());
-        parceiro.setTelefone(pessoaBase.getTelefone());
-        parceiro.setCnpj(dadosSolicitacao.getCnpj());
-        parceiro.setNomeEmpresa(dadosSolicitacao.getNomeEmpresa());
-
-        // Atualiza vínculo no Usuario
-        usuario.setPessoa(parceiro);
         usuario.setTipo(tipoParceiro);
+        usuario.setPessoa(novoParceiro);
 
-        // Remove a solicitação ANTES de salvar o usuário
+        // Limpeza final
         solicitacaoService.delete(dadosSolicitacao.getId());
 
-        // Salva Parceiro e Usuario
-        Parceiro parceiroPersistido = parceiroRepository.save(parceiro);
-        usuarioService.save(usuario);
-
-        return parceiroPersistido;
+        return (Parceiro) usuarioService.save(usuario).getPessoa();
     }
 
 

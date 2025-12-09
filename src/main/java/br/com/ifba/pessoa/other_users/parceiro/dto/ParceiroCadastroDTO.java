@@ -11,11 +11,11 @@ import org.hibernate.validator.constraints.br.CNPJ;
 @AllArgsConstructor
 public class ParceiroCadastroDTO {
 
-    @NotBlank(message = "O nome do responsável é obrigatório")
-    private String nome;
+    //@NotBlank(message = "O nome do responsável é obrigatório")
+    //private String nome;
 
-    @NotBlank(message = "O telefone é obrigatório")
-    private String telefone;
+    //@NotBlank(message = "O telefone é obrigatório")
+    //private String telefone;
 
     @NotBlank(message = "O CNPJ é obrigatório")
     @CNPJ(message = "CNPJ inválido")
@@ -24,6 +24,6 @@ public class ParceiroCadastroDTO {
     @NotBlank(message = "O nome da empresa é obrigatório")
     private String nomeEmpresa;
 
-    @NotBlank(message = "O horário de funcionamento é obrigatório")
-    private String horarioFuncionamento;
+    //@NotBlank(message = "O horário de funcionamento é obrigatório")
+    //private String horarioFuncionamento;
 }

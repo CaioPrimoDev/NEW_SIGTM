@@ -14,6 +14,7 @@ public interface UsuarioIService {
     void delete(Long id);
     List<Usuario> findAll();
     Usuario findById(Long id);
+    Usuario saveAndFlush(Usuario usuario);
     Usuario findByPessoaId(Long pessoaId);
     void validarUsuario(Usuario user);
     List<Solicitacao> findSolicitacoesByUsuarioId(@Param("id") Long id);
