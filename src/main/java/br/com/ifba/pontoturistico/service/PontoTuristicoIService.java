@@ -12,7 +12,7 @@ import java.util.List;
 public interface PontoTuristicoIService {
 
     void verificaGestor(UsuarioSession userLogado);
-    void save(PontoTuristico pontoTuristico);
+    PontoTuristico save(PontoTuristico pontoTuristico);
     void update(PontoTuristico pontoTuristico);
     void delete(PontoTuristico pontoTuristico);
     List<PontoTuristico> findAll();

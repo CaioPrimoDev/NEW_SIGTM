@@ -28,7 +28,7 @@ public class PontoTuristicoService implements PontoTuristicoIService {
     // Constantes de erro necessárias
     private static final String PONTO_TURISTICO_NULL = "Dados do Ponto Turístico não fornecidos.";
     private static final String PONTO_TURISTICO_NOT_FOUND = "Ponto Turístico com o ID informado não foi encontrado.";
-    private static final String PERMISSAO_INSUFICIENTE = "Permissão insuficiente. Esta funcionalidade é exclusiva para o perfil de gestor.";
+    // private static final String PERMISSAO_INSUFICIENTE = "Permissão insuficiente. Esta funcionalidade é exclusiva para o perfil de gestor.";
     private static final String ENDERECO_JA_UTILIZADO = "Este endereço já está em uso por outro Ponto Turístico.";
 
     private static final    Logger log = LoggerFactory.
@@ -81,10 +81,10 @@ public class PontoTuristicoService implements PontoTuristicoIService {
         }
 
         // Verifica se o tipo do usuário é GESTOR
-        String tipoUsuario = this.usuarioLogado.getUsuarioLogado().getTipo().getNome();
+        /*String tipoUsuario = this.usuarioLogado.getUsuarioLogado().getTipo().getNome();
         if (!"GESTOR".equals(tipoUsuario)) {
             throw new BusinessException(PERMISSAO_INSUFICIENTE);
-        }
+        }*/
     }
 
     /**
@@ -99,22 +99,18 @@ public class PontoTuristicoService implements PontoTuristicoIService {
 
     @Override
     @Transactional
-    public void save(PontoTuristico pontoTuristico) {
-        log.info("Iniciando processo de salvamento do Ponto Turístico: {}", pontoTuristico.getId());
+    public PontoTuristico save(PontoTuristico pontoTuristico) {
 
-        // realiza verificacoes antes de prosseguir
-        verificaGestor(usuarioLogado);
-        validarPontoTuristico(pontoTuristico);
+        // salva endereço (ou encontra existente)
+        Endereco endereco = enderecoService.encontrarOuCriarEndereco(
+                pontoTuristico.getEndereco()
+        );
+        pontoTuristico.setEndereco(endereco);
 
-        Endereco enderecoGerenciado = enderecoService.encontrarOuCriarEndereco(pontoTuristico.getEndereco());
-        pontoTuristico.setEndereco(enderecoGerenciado);
-
-        validarUnicidadeDeEnderecoParaPontoTuristico(pontoTuristico);
-
-        log.info("Validações concluídas. Salvando Ponto Turístico...");
-
-        pontoTuristicoRepository.save(pontoTuristico);
+        // salva o ponto turístico
+        return pontoTuristicoRepository.save(pontoTuristico);
     }
+
 
     @Override
     @Transactional
