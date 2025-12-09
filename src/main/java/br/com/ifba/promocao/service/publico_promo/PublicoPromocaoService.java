@@ -1,11 +1,11 @@
 package br.com.ifba.promocao.service.publico_promo;
 
+import br.com.ifba.infrastructure.exception.BusinessException;
 import br.com.ifba.promocao.entity.PublicoPromocao;
 import br.com.ifba.promocao.repository.PublicoPromocaoRepository;
 import br.com.ifba.sessao.entity.UsuarioSession;
 import br.com.ifba.usuario.entity.Usuario;
 import br.com.ifba.usuario.service.user.UsuarioService;
-import br.com.ifba.util.RegraNegocioException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,7 +29,7 @@ public class PublicoPromocaoService implements PublicoPromocaoIService {
     private Usuario getUsuarioLogado() {
         Usuario usuarioLogado = usuarioSession.getUsuarioLogado();
         if (usuarioLogado == null) {
-            throw new RegraNegocioException("Usuário não autenticado");
+            throw new BusinessException("Usuário não autenticado");
         }
         return usuarioLogado;
     }
@@ -39,7 +39,7 @@ public class PublicoPromocaoService implements PublicoPromocaoIService {
         String tipoUsuario = usuarioService.findById(usuario.getPessoa().getId())
                 .getTipo().getNome().toLowerCase();
         if (!tipoUsuario.equals("parceiro") && !tipoUsuario.equals("gestor")) {
-            throw new RegraNegocioException("Apenas parceiros e gestores podem cadastrar públicos");
+            throw new BusinessException("Apenas parceiros e gestores podem cadastrar públicos");
         }
     }
 
@@ -51,25 +51,25 @@ public class PublicoPromocaoService implements PublicoPromocaoIService {
     public PublicoPromocao save(PublicoPromocao publicoPromocao) {
 
         if (!usuarioSession.isLogado()) {
-            throw new RegraNegocioException("Você precisa estar logado para criar promoções.");
+            throw new BusinessException("Você precisa estar logado para criar promoções.");
         }
 
         validarPermissaoCadastro();
 
         if (publicoPromocao.getNome() == null || publicoPromocao.getNome().trim().isEmpty()) {
-            throw new IllegalArgumentException("Nome não pode ser vazio");
+            throw new BusinessException("Nome não pode ser vazio");
         }
 
         if (publicoPromocao.getDescricao() == null || publicoPromocao.getDescricao().trim().isEmpty()) {
-            throw new IllegalArgumentException("Descrição não pode ser vazia");
+            throw new BusinessException("Descrição não pode ser vazia");
         }
 
         if (publicoPromocao.getFaixaEtaria() == null || publicoPromocao.getFaixaEtaria().trim().isEmpty()) {
-            throw new IllegalArgumentException("Faixa etária não pode ser vazia");
+            throw new BusinessException("Faixa etária não pode ser vazia");
         }
 
         if (publicoPromocao.getInteresse() == null || publicoPromocao.getInteresse().trim().isEmpty()) {
-            throw new IllegalArgumentException("Interesse não pode ser vazio");
+            throw new BusinessException("Interesse não pode ser vazio");
         }
 
         publicoPromocao.setUsuarioCadastro(getUsuarioLogado());
@@ -91,7 +91,7 @@ public class PublicoPromocaoService implements PublicoPromocaoIService {
         boolean isDono = existente.getUsuarioCadastro().getPessoa().getId().equals(usuarioLogado.getPessoa().getId());
 
         if (!isDono && !isGestor) {
-            throw new RegraNegocioException("Apenas o criador ou gestores podem editar este público");
+            throw new BusinessException("Apenas o criador ou gestores podem editar este público");
         }
 
         publicoPromocao.setUsuarioCadastro(existente.getUsuarioCadastro()); // mantém o dono
@@ -109,7 +109,7 @@ public class PublicoPromocaoService implements PublicoPromocaoIService {
         boolean isDono = publico.getUsuarioCadastro().getPessoa().getId().equals(usuarioLogado.getPessoa().getId());
 
         if (!isDono && !isGestor) {
-            throw new RegraNegocioException("Apenas o criador ou gestores podem excluir este público");
+            throw new BusinessException("Apenas o criador ou gestores podem excluir este público");
         }
 
         publicoPromocaoRepository.delete(publico);

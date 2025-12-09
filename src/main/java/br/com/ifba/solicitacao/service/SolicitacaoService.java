@@ -1,9 +1,9 @@
 package br.com.ifba.solicitacao.service;
 
+import br.com.ifba.infrastructure.exception.BusinessException;
 import br.com.ifba.solicitacao.entity.Solicitacao;
 import br.com.ifba.solicitacao.repository.SolicitacaoRepository;
 import br.com.ifba.usuario.entity.Usuario;
-import br.com.ifba.util.RegraNegocioException;
 import br.com.ifba.util.StringUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,10 +33,10 @@ public class SolicitacaoService implements SolicitacaoIService {
             return repo.save(solicitacao);
         } catch (DataIntegrityViolationException e) {
             log.error("Violação de integridade ao salvar Solicitação: {}", solicitacao.getId(), e);
-            throw new RegraNegocioException("Dados inválidos ou solicitação já existe.");
+            throw new BusinessException("Dados inválidos ou solicitação já existe.", e);
         } catch (RuntimeException e) {
             log.error("Erro inesperado ao salvar Solicitação.", e);
-            throw new RegraNegocioException("Erro ao salvar Solicitação.");
+            throw new BusinessException("Erro ao salvar Solicitação.");
         }
     }
 
@@ -44,16 +44,16 @@ public class SolicitacaoService implements SolicitacaoIService {
     public void delete(Long id) {
         if (id == null || id <= 0) {
             log.warn("Tentativa de excluir Solicitação com ID inválido: {}", id);
-            throw new RegraNegocioException("ID de Solicitação inválido.");
+            throw new BusinessException("ID de Solicitação inválido.");
         }
         try {
             repo.deleteById(id);
         } catch (EmptyResultDataAccessException e) {
             log.error("Solicitação não encontrada para exclusão (ID: {}).", id, e);
-            throw new RegraNegocioException("Solicitação não encontrada para exclusão.");
+            throw new BusinessException("Solicitação não encontrada para exclusão.", e);
         } catch (RuntimeException e) {
             log.error("Erro inesperado ao excluir Solicitação.", e);
-            throw new RegraNegocioException("Erro ao excluir Solicitação.");
+            throw new BusinessException("Erro ao excluir Solicitação.");
         }
     }
 
@@ -63,7 +63,7 @@ public class SolicitacaoService implements SolicitacaoIService {
             return repo.findAll();
         } catch (RuntimeException e) {
             log.error("Erro ao buscar todas as Solicitações.", e);
-            throw new RegraNegocioException("Erro ao buscar Solicitações.");
+            throw new BusinessException("Erro ao buscar Solicitações.");
         }
     }
 
@@ -71,16 +71,16 @@ public class SolicitacaoService implements SolicitacaoIService {
     public Solicitacao findById(Long id) {
         if (id == null || id <= 0) {
             log.warn("ID inválido fornecido para busca: {}", id);
-            throw new RegraNegocioException("ID inválido para busca.");
+            throw new BusinessException("ID inválido para busca.");
         }
         try {
             return repo.findById(id).orElseThrow(() -> {
                 log.warn("Solicitação não encontrada para ID: {}", id);
-                return new RegraNegocioException("Solicitação não encontrada.");
+                return new BusinessException("Solicitação não encontrada.");
             });
         } catch (RuntimeException e) {
             log.error("Erro inesperado ao buscar Solicitação por ID.", e);
-            throw new RegraNegocioException("Erro ao buscar Solicitação por ID.");
+            throw new BusinessException("Erro ao buscar Solicitação por ID.");
         }
     }
 
@@ -113,7 +113,7 @@ public class SolicitacaoService implements SolicitacaoIService {
     @Override
     public List<Solicitacao> findByNomeUsuarioComSolicitacaoAtiva(String nome) {
         if (nome == null || nome.trim().isEmpty()) {
-            throw new IllegalArgumentException("Nome não pode ser nulo ou vazio.");
+            throw new BusinessException("Nome não pode ser nulo ou vazio.");
         }
 
         log.info("Buscando solicitações para usuários com nome '{}', parceria TRUE e usuário ativo...", nome);
@@ -124,29 +124,29 @@ public class SolicitacaoService implements SolicitacaoIService {
     public void validarSolicitacao(Solicitacao solicitacao) {
         if (solicitacao == null) {
             log.warn("Solicitação recebida é nula.");
-            throw new RegraNegocioException("A Solicitação não pode ser nula.");
+            throw new BusinessException("A Solicitação não pode ser nula.");
         }
 
         // Validação do CNPJ
         if (StringUtil.isNullOrEmpty(solicitacao.getCnpj())) {
             log.warn("CNPJ da Solicitação é nulo ou vazio.");
-            throw new RegraNegocioException("O CNPJ é obrigatório.");
+            throw new BusinessException("O CNPJ é obrigatório.");
         }
 
         // Validação do nomeEmpresa
         if (StringUtil.isNullOrEmpty(solicitacao.getNomeEmpresa())) {
             log.warn("Nome da empresa da Solicitação é nulo ou vazio.");
-            throw new RegraNegocioException("O nome da empresa é obrigatório.");
+            throw new BusinessException("O nome da empresa é obrigatório.");
         }
         if (!StringUtil.hasValidLength(solicitacao.getNomeEmpresa(), 3, 100)) {
             log.warn("Nome da empresa fora do tamanho permitido: '{}'", solicitacao.getNomeEmpresa());
-            throw new RegraNegocioException("O nome da empresa deve ter entre 3 e 100 caracteres.");
+            throw new BusinessException("O nome da empresa deve ter entre 3 e 100 caracteres.");
         }
 
         // Validação do usuário associado
         if (solicitacao.getUsuario() == null) {
             log.warn("Solicitação sem usuário associado.");
-            throw new RegraNegocioException("A solicitação deve estar associada a um usuário.");
+            throw new BusinessException("A solicitação deve estar associada a um usuário.");
         }
     }
 }

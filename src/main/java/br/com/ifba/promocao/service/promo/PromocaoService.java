@@ -1,5 +1,6 @@
 package br.com.ifba.promocao.service.promo;
 
+import br.com.ifba.infrastructure.exception.BusinessException;
 import br.com.ifba.promocao.entity.Promocao;
 import br.com.ifba.promocao.entity.TipoPromocao;
 import br.com.ifba.promocao.repository.PromocaoRepository;
@@ -34,7 +35,7 @@ public class PromocaoService implements PromocaoIService {
         // obtem o usuário logado
         Usuario usuarioLogado = usuarioSession.getUsuarioLogado();
         if (usuarioLogado == null) {
-            throw new RuntimeException("Usuário não autenticado. Não é possível salvar a promoção.");
+            throw new BusinessException("Usuário não autenticado. Não é possível salvar a promoção.");
         }
 
         //associa promoção a usuário
@@ -114,35 +115,35 @@ public class PromocaoService implements PromocaoIService {
 
     private void validateTitulo(String titulo) {
         if (StringUtil.isNullOrEmpty(titulo)) {
-            throw new IllegalArgumentException("Título não pode ser vazio");
+            throw new BusinessException("Título não pode ser vazio");
         }
         if (!StringUtil.hasValidLength(titulo, 3, 20)) {
-            throw new IllegalArgumentException("Título deve ter entre 3 e 20 caracteres");
+            throw new BusinessException("Título deve ter entre 3 e 20 caracteres");
         }
     }
 
     private void validateDescricao(String descricao) {
         if (StringUtil.isNullOrEmpty(descricao)) {
-            throw new IllegalArgumentException("Descrição não pode ser vazia");
+            throw new BusinessException("Descrição não pode ser vazia");
         }
         if (!StringUtil.hasValidLength(descricao, 10, 100)) {
-            throw new IllegalArgumentException("Descrição deve ter entre 10 e 100 caracteres");
+            throw new BusinessException("Descrição deve ter entre 10 e 100 caracteres");
         }
     }
 
     private void validateDatas(Date dataInicio, Date dataTermino) {
         if (dataInicio == null || dataTermino == null) {
-            throw new IllegalArgumentException("Datas de início e término são obrigatórias");
+            throw new BusinessException("Datas de início e término são obrigatórias");
         }
 
         if (dataTermino.before(dataInicio)) {
-            throw new IllegalArgumentException("Data de término deve ser após a data de início");
+            throw new BusinessException("Data de término deve ser após a data de início");
         }
     }
 
     private void validateRegras(String regras) {
         if (!StringUtil.isNullOrEmpty(regras) && !StringUtil.hasValidLength(regras, 0, 100)) {
-            throw new IllegalArgumentException("Regras não podem exceder 100 caracteres");
+            throw new BusinessException("Regras não podem exceder 100 caracteres");
         }
     }
 }

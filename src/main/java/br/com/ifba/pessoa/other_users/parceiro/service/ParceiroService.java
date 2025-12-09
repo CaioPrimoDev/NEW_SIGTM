@@ -1,5 +1,6 @@
 package br.com.ifba.pessoa.other_users.parceiro.service;
 
+import br.com.ifba.infrastructure.exception.BusinessException;
 import br.com.ifba.pessoa.entity.Pessoa;
 import br.com.ifba.pessoa.other_users.parceiro.entity.Parceiro;
 import br.com.ifba.pessoa.other_users.parceiro.repository.ParceiroRepository;
@@ -11,7 +12,6 @@ import br.com.ifba.usuario.entity.TipoUsuario;
 import br.com.ifba.usuario.entity.Usuario;
 import br.com.ifba.usuario.service.tipo_user.TipoUsuarioIService;
 import br.com.ifba.usuario.service.user.UsuarioIService;
-import br.com.ifba.util.RegraNegocioException;
 import br.com.ifba.util.StringUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,11 +55,11 @@ public class ParceiroService implements ParceiroIService {
         } catch (DataIntegrityViolationException e) {
             // Violação de constraints do banco (ex: unique ou not null)
             log.error("Violação de integridade ao salvar Parceiro: {}", user.getNome(), e);
-            throw new RegraNegocioException("Já existe um Parceiro com esse nome ou dados inválidos.");
+            throw new BusinessException("Já existe um Parceiro com esse nome ou dados inválidos.", e);
         } catch (RuntimeException e) {
             // Falha inesperada
             log.error("Erro inesperado ao salvar Parceiro.", e);
-            throw new RegraNegocioException("Erro ao salvar Parceiro.");
+            throw new BusinessException("Erro ao salvar Parceiro.");
         }
     }
 
@@ -67,7 +67,7 @@ public class ParceiroService implements ParceiroIService {
     public void delete(Long id) {
         if (id == null || id <= 0) {
             log.warn("Tentativa de excluir Parceiro com ID inválido: {}", id);
-            throw new RegraNegocioException("ID de Usuário inválido.");
+            throw new BusinessException("ID de Usuário inválido.");
         }
 
         try {
@@ -75,10 +75,10 @@ public class ParceiroService implements ParceiroIService {
         } catch (EmptyResultDataAccessException e) {
             // ID não encontrado no banco
             log.error("Tentativa de exclusão de Parceiro inexistente (ID: {}).", id, e);
-            throw new RegraNegocioException("Parceiro não encontrado para exclusão.");
+            throw new BusinessException("Parceiro não encontrado para exclusão.", e);
         } catch (RuntimeException e) {
             log.error("Erro inesperado ao excluir Parceiro.", e);
-            throw new RegraNegocioException("Erro ao excluir Parceiro.");
+            throw new BusinessException("Erro ao excluir Parceiro.");
         }
     }
 
@@ -88,7 +88,7 @@ public class ParceiroService implements ParceiroIService {
             return parceiroRepository.findAll();
         } catch (RuntimeException e) {
             log.error("Erro ao buscar todos os Parceiro.", e);
-            throw new RegraNegocioException("Erro ao buscar todos os Parceiro.");
+            throw new BusinessException("Erro ao buscar todos os Parceiro.");
         }
     }
 
@@ -96,18 +96,18 @@ public class ParceiroService implements ParceiroIService {
     public Parceiro findById(Long id) {
         if (id == null || id <= 0) {
             log.warn("ID inválido fornecido para busca: {}", id);
-            throw new RegraNegocioException("ID inválido para busca.");
+            throw new BusinessException("ID inválido para busca.");
         }
 
         try {
             return parceiroRepository.findById(id)
                     .orElseThrow(() -> {
                         log.warn("Parceiro não encontrado para ID: {}", id);
-                        return new RegraNegocioException("Usuário não encontrado.");
+                        return new BusinessException("Usuário não encontrado.");
                     });
         } catch (RuntimeException e) {
             log.error("Erro inesperado ao buscar Parceiro por ID.", e);
-            throw new RegraNegocioException("Erro ao buscar Parceiro por ID.");
+            throw new BusinessException("Erro ao buscar Parceiro por ID.");
         }
     }
 
@@ -132,7 +132,7 @@ public class ParceiroService implements ParceiroIService {
         // 1. Verificação de entrada
         if (cnpj == null || cnpj.trim().isEmpty()) {
             log.error("CNPJ fornecido para busca é nulo ou vazio.");
-            throw new IllegalArgumentException("O CNPJ não pode ser nulo ou vazio para a busca.");
+            throw new BusinessException("O CNPJ não pode ser nulo ou vazio para a busca.");
         }
 
 
@@ -147,10 +147,10 @@ public class ParceiroService implements ParceiroIService {
             }
         } catch (org.springframework.dao.DataAccessException e) {
             log.error("Erro de acesso a dados ao buscar Parceiro por CNPJ {}: {}", cnpj, e.getMessage(), e);
-            throw new RegraNegocioException("Erro ao buscar usuário pelo CNPJ. Tente novamente mais tarde.");
+            throw new BusinessException("Erro ao buscar usuário pelo CNPJ. Tente novamente mais tarde.", e);
         } catch (Exception e) {
             log.error("Erro inesperado ao buscar Parceiro por CNPJ {}: {}", cnpj, e.getMessage(), e);
-            throw new RegraNegocioException("Ocorreu um erro interno ao buscar Parceiro pelo CNPJ.");
+            throw new BusinessException("Ocorreu um erro interno ao buscar Parceiro pelo CNPJ.");
         }
         return parceiro;
     }
@@ -159,7 +159,7 @@ public class ParceiroService implements ParceiroIService {
     public void validarParceiro(Parceiro user) {
         if (user == null) {
             log.warn("Parceiro recebido é nulo.");
-            throw new RegraNegocioException("O Parceiro não pode ser nulo.");
+            throw new BusinessException("O Parceiro não pode ser nulo.");
         }
 
             /*if(!StringUtil.isCnpjValido(user.getCnpj()) || StringUtil.isNullOrEmpty(user.getCnpj())) {
@@ -169,24 +169,24 @@ public class ParceiroService implements ParceiroIService {
 
         if(StringUtil.isNullOrEmpty(user.getNomeEmpresa())) {
             log.warn("O nome da empresa vazio ou inválido");
-            throw new RegraNegocioException("O nome da empresa é obrigatório");
+            throw new BusinessException("O nome da empresa é obrigatório");
         }
     }
 
     @Override
     public Parceiro tornarParceiro(Usuario usuario) {
         if (usuario == null || usuario.getPessoa() == null) {
-            throw new RegraNegocioException("Usuário ou dados pessoais inválidos para criar parceiro.");
+            throw new BusinessException("Usuário ou dados pessoais inválidos para criar parceiro.");
         }
 
         // Obtém solicitação ANTES de alterar o usuário
         Solicitacao dadosSolicitacao = solicitacaoService.findByUsuario(usuario)
-                .orElseThrow(() -> new RegraNegocioException("Nenhuma solicitação encontrada para este usuário."));
+                .orElseThrow(() -> new BusinessException("Nenhuma solicitação encontrada para este usuário."));
 
         // Garante que Pessoa é realmente um UsuarioComum
         Pessoa pessoa = usuario.getPessoa();
         if (!(pessoa instanceof UsuarioComum)) {
-            throw new RegraNegocioException("A pessoa associada ao usuário não é um UsuarioComum.");
+            throw new BusinessException("A pessoa associada ao usuário não é um UsuarioComum.");
         }
 
         UsuarioComum pessoaBase = (UsuarioComum) pessoa;
@@ -218,8 +218,9 @@ public class ParceiroService implements ParceiroIService {
 
 
     @Override
-    public Usuario removerParceiria(Parceiro parceiro) {        if (parceiro == null) {
-            throw new RegraNegocioException("Parceiro inválido.");
+    public Usuario removerParceiria(Parceiro parceiro) {
+        if (parceiro == null) {
+            throw new BusinessException("Parceiro inválido.");
         }
 
         // Buscar tipo de usuário comum
@@ -228,7 +229,7 @@ public class ParceiroService implements ParceiroIService {
         // Buscar o usuário associado ao Parceiro
         Usuario usuario = usuarioService.findByPessoaId(parceiro.getId());
         if (usuario == null) {
-            throw new RegraNegocioException("Usuário não encontrado para o parceiro informado.");
+            throw new BusinessException("Usuário não encontrado para o parceiro informado.");
         }
 
         // Criar nova Pessoa
@@ -239,7 +240,7 @@ public class ParceiroService implements ParceiroIService {
         // Persistir nova Pessoa (não usamos retorno)
         boolean pessoaSalva = pessoaService.save(pessoaAntiga);
         if (!pessoaSalva) {
-            throw new RegraNegocioException("Erro ao salvar dados da pessoa.");
+            throw new BusinessException("Erro ao salvar dados da pessoa.");
         }
 
         // Atualizar Usuario
@@ -247,7 +248,7 @@ public class ParceiroService implements ParceiroIService {
         usuario.setPessoa(pessoaAntiga);
         boolean usuarioSalvo = usuarioService.save(usuario);
         if (!usuarioSalvo) {
-            throw new RegraNegocioException("Erro ao atualizar usuário.");
+            throw new BusinessException("Erro ao atualizar usuário.");
         }
 
         // Remover solicitação se existir

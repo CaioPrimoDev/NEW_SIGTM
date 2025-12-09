@@ -7,8 +7,10 @@ import br.com.ifba.promocao.entity.Promocao;
 import br.com.ifba.promocao.entity.TipoPromocao;
 import br.com.ifba.promocao.service.promo.PromocaoIService;
 import br.com.ifba.promocao.service.tipo_promocao.TipoPromocaoIService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,39 +18,29 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/promocoes")
+@RequestMapping(value = "/promocoes", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class PromocaoController {
 
     private final PromocaoIService service;
-    private final TipoPromocaoIService tipoService; // Necessário para converter ID em Entidade
+    private final TipoPromocaoIService tipoService;
     private final ObjectMapperUtill mapper;
 
-    // 1. SALVAR (Create)
-    @PostMapping("/save")
-    public ResponseEntity<PromocaoResponseDTO> salvar(@RequestBody PromocaoDTO dto) {
-
-        // 1. Busca o TipoPromocao pelo ID (lança exceção se não achar)
+    @PostMapping(value = "/save", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PromocaoResponseDTO> salvar(@RequestBody @Valid PromocaoDTO dto) {
         TipoPromocao tipo = tipoService.findById(dto.getTipoPromocaoId());
 
-        // 2. Mapeia DTO -> Entidade
         Promocao entity = mapper.map(dto, Promocao.class);
-
-        // 3. Vincula o Tipo (Service já cuida do UsuarioCriador via sessão)
         entity.setTipo(tipo);
 
-        // 4. Salva (Service executa validatePromocao)
         Promocao saved = service.save(entity);
-
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(mapToResponse(saved));
     }
 
-    // 2. ATUALIZAR (Update)
-    @PutMapping("/{id}")
+    @PutMapping(value = "/update/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PromocaoResponseDTO> atualizar(@PathVariable Long id,
-                                                         @RequestBody PromocaoDTO dto) {
-        // Busca o Tipo (pode ter mudado)
+                                                         @RequestBody @Valid PromocaoDTO dto) {
         TipoPromocao tipo = tipoService.findById(dto.getTipoPromocaoId());
 
         Promocao entity = mapper.map(dto, Promocao.class);
@@ -59,17 +51,14 @@ public class PromocaoController {
         return ResponseEntity.ok(mapToResponse(updated));
     }
 
-    // 3. DELETAR
-    @DeleteMapping("/{id}")
+    @DeleteMapping(value = "/delete/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        // Como o Service espera um objeto 'Promocao' no delete, buscamos primeiro
         Promocao entity = service.findById(id);
         service.delete(entity);
         return ResponseEntity.noContent().build();
     }
 
-    // 4. LISTAR TODAS
-    @GetMapping("/findall")
+    @GetMapping(value = "/findall")
     public ResponseEntity<List<PromocaoResponseDTO>> listarTodas() {
         return ResponseEntity.ok(
                 service.findAll().stream()
@@ -78,19 +67,15 @@ public class PromocaoController {
         );
     }
 
-    // 5. BUSCAR POR ID
-    @GetMapping("/{id}")
+    @GetMapping(value = "/find/{id}")
     public ResponseEntity<PromocaoResponseDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(mapToResponse(service.findById(id)));
     }
 
-    // Endpoint: GET /promocoes/filtrar?termo=Natal&tipo=Desconto
-    @GetMapping("/filtrar")
+    @GetMapping(value = "/find/filtrar")
     public ResponseEntity<List<PromocaoResponseDTO>> filtrar(@RequestParam(required = false) String termo,
                                                              @RequestParam(defaultValue = "TODOS") String tipo) {
-        // Chama o método específico do service
         List<Promocao> filtradas = service.filtrarPromocoes(termo, tipo);
-
         return ResponseEntity.ok(
                 filtradas.stream()
                         .map(this::mapToResponse)
@@ -98,18 +83,15 @@ public class PromocaoController {
         );
     }
 
-    // --- Auxiliar de Mapeamento ---
     private PromocaoResponseDTO mapToResponse(Promocao entity) {
         PromocaoResponseDTO dto = mapper.map(entity, PromocaoResponseDTO.class);
 
-        // Preenche campos de visualização rápida
         if (entity.getUsuarioCriador() != null && entity.getUsuarioCriador().getPessoa() != null) {
             dto.setNomeUsuarioCriador(entity.getUsuarioCriador().getPessoa().getNome());
         }
         if (entity.getTipo() != null) {
             dto.setTituloTipoPromocao(entity.getTipo().getTitulo());
         }
-
         return dto;
     }
 }

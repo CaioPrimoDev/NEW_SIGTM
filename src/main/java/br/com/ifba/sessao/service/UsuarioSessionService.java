@@ -1,9 +1,9 @@
 package br.com.ifba.sessao.service;
 
 
+import br.com.ifba.infrastructure.exception.BusinessException;
 import br.com.ifba.usuario.entity.Usuario;
 import br.com.ifba.usuario.repository.UsuarioRepository;
-import br.com.ifba.util.RegraNegocioException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,24 +27,24 @@ public class UsuarioSessionService implements UsuarioSessionIService {
 
         if (email == null || email.trim().isEmpty() || senha == null || senha.isEmpty()) {
             log.warn("Email ou senha nulos/invalidos");
-            throw new RegraNegocioException("Email e senha são obrigatórios.");
+            throw new BusinessException("Email e senha são obrigatórios.");
         }
 
         Optional<Usuario> usuario = usuarioRepository.findByEmail(email);
 
         if (usuario.isEmpty()) {
             log.warn("Usuário não encontrado: {}", email);
-            throw new RegraNegocioException("Usuário ou senha inválidos.");
+            throw new BusinessException("Usuário ou senha inválidos.");
         }
 
         if (!usuario.get().getSenha().equals(senha)) {
             log.warn("Senha incorreta para o usuário: {}", email);
-            throw new RegraNegocioException("Usuário ou senha inválidos.");
+            throw new BusinessException("Usuário ou senha inválidos.");
         }
 
         if (!usuario.get().isAtivo()) {
             log.warn("Usuário inativo: {}", email);
-            throw new RegraNegocioException("Usuário inativo.");
+            throw new BusinessException("Usuário inativo.");
         }
 
 

@@ -1,11 +1,11 @@
 package br.com.ifba.promocao.service.tipo_promocao;
 
+import br.com.ifba.infrastructure.exception.BusinessException;
 import br.com.ifba.promocao.entity.TipoPromocao;
 import br.com.ifba.promocao.repository.TipoPromocaoRepository;
 import br.com.ifba.sessao.entity.UsuarioSession;
 import br.com.ifba.usuario.entity.Usuario;
 import br.com.ifba.usuario.service.user.UsuarioService;
-import br.com.ifba.util.RegraNegocioException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,7 +25,7 @@ public class TipoPromocaoService implements TipoPromocaoIService {
         Usuario usuarioLogado = usuarioSession.getUsuarioLogado();
 
         if (usuarioLogado == null) {
-            throw new RegraNegocioException("Usuário não autenticado");
+            throw new BusinessException("Usuário não autenticado");
         }
 
         // Busca o usuário completo para verificar o tipo
@@ -34,7 +34,7 @@ public class TipoPromocaoService implements TipoPromocaoIService {
         // Verifica se é parceiro ou gestor
         String tipoUsuario = usuarioCompleto.getTipo().getNome().toLowerCase();
         if (!tipoUsuario.equals("parceiro") && !tipoUsuario.equals("gestor")) {
-            throw new RegraNegocioException("Apenas parceiros e gestores podem cadastrar tipos de promoção");
+            throw new BusinessException("Apenas parceiros e gestores podem cadastrar tipos de promoção");
         }
     }
 
@@ -43,7 +43,7 @@ public class TipoPromocaoService implements TipoPromocaoIService {
         Usuario usuarioLogado = usuarioSession.getUsuarioLogado();
 
         if (usuarioLogado == null) {
-            throw new RegraNegocioException("Usuário não autenticado para visualização");
+            throw new BusinessException("Usuário não autenticado para visualização");
         }
     }
 
@@ -51,7 +51,7 @@ public class TipoPromocaoService implements TipoPromocaoIService {
     private Usuario getUsuarioLogado() {
         Usuario usuarioLogado = usuarioSession.getUsuarioLogado();
         if (usuarioLogado == null) {
-            throw new RegraNegocioException("Usuário não autenticado");
+            throw new BusinessException("Usuário não autenticado");
         }
         return usuarioLogado;
     }
@@ -64,15 +64,15 @@ public class TipoPromocaoService implements TipoPromocaoIService {
 
         // Validações existentes
         if(tipoPromocao.getTitulo() == null || tipoPromocao.getTitulo().trim().isEmpty()) {
-            throw new IllegalArgumentException("Título do tipo não pode ser vazio");
+            throw new BusinessException("Título do tipo não pode ser vazio");
         }
 
         if(tipoPromocao.getDescricao() == null || tipoPromocao.getDescricao().trim().isEmpty()) {
-            throw new IllegalArgumentException("Descrição do tipo não pode ser vazia");
+            throw new BusinessException("Descrição do tipo não pode ser vazia");
         }
 
         if(tipoPromocaoRepository.existsByTitulo(tipoPromocao.getTitulo())) {
-            throw new IllegalArgumentException("Já existe um tipo com este título");
+            throw new BusinessException("Já existe um tipo com este título");
         }
 
         // Associa o usuário que está cadastrando
@@ -103,7 +103,7 @@ public class TipoPromocaoService implements TipoPromocaoIService {
         boolean isDono = existente.getUsuarioCadastro().getPessoa().getId().equals(usuarioLogado.getPessoa().getId());
 
         if (!isDono && !isGestor) {
-            throw new RegraNegocioException("Apenas o criador ou gestores podem editar este tipo de promoção");
+            throw new BusinessException("Apenas o criador ou gestores podem editar este tipo de promoção");
         }
 
         return tipoPromocaoRepository.save(tipoPromocao);
@@ -126,7 +126,7 @@ public class TipoPromocaoService implements TipoPromocaoIService {
         boolean isDono = tipoPromocao.getUsuarioCadastro().getPessoa().getId().equals(usuarioLogado.getPessoa().getId());
 
         if (!isDono && !isGestor) {
-            throw new RegraNegocioException("Apenas o criador ou gestores podem excluir este tipo de promoção");
+            throw new BusinessException("Apenas o criador ou gestores podem excluir este tipo de promoção");
         }
 
         tipoPromocaoRepository.delete(tipoPromocao);

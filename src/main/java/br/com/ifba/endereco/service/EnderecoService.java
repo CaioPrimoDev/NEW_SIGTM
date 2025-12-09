@@ -3,6 +3,7 @@ package br.com.ifba.endereco.service;
 import br.com.ifba.endereco.entity.Endereco;
 import br.com.ifba.endereco.repository.EnderecoRepository;
 import br.com.ifba.evento.repository.EventoRepository;
+import br.com.ifba.infrastructure.exception.BusinessException;
 import br.com.ifba.pontoturistico.repository.PontoTuristicoRepository;
 import br.com.ifba.util.StringUtil;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,16 +44,16 @@ public class EnderecoService implements EnderecoIService {
      */
     private void validarCamposObrigatorios(Endereco endereco) {
         if (endereco == null) {
-            throw new IllegalArgumentException(ENDERECO_NULL);
+            throw new BusinessException(ENDERECO_NULL);
         }
         if (StringUtil.isNullOrEmpty(endereco.getEstado())) {
-            throw new IllegalArgumentException("O campo 'estado' é obrigatório.");
+            throw new BusinessException("O campo 'estado' é obrigatório.");
         }
         if (StringUtil.isNullOrEmpty(endereco.getCidade())) {
-            throw new IllegalArgumentException("O campo 'cidade' é obrigatório.");
+            throw new BusinessException("O campo 'cidade' é obrigatório.");
         }
         if (StringUtil.isNullOrEmpty(endereco.getBairro())) {
-            throw new IllegalArgumentException("O campo 'bairro' é obrigatório.");
+            throw new BusinessException("O campo 'bairro' é obrigatório.");
         }
     }
 
@@ -65,7 +66,7 @@ public class EnderecoService implements EnderecoIService {
         );
 
         if (existente.isPresent() && !existente.get().getId().equals(endereco.getId())) {
-            throw new IllegalStateException(ENDERECO_DUPLICADO);
+            throw new BusinessException(ENDERECO_DUPLICADO);
         }
     }
 
@@ -97,7 +98,7 @@ public class EnderecoService implements EnderecoIService {
     public void deleteById(Long id) {
         log.info("Iniciando deleção do Endereço de ID: {}");
         if (id == null) {
-            throw new IllegalArgumentException(ID_NULL);
+            throw new BusinessException(ID_NULL);
         }
         if (!enderecoRepository.existsById(id)) {
             throw new NoSuchElementException(ENDERECO_NOT_FOUND);
@@ -119,7 +120,7 @@ public class EnderecoService implements EnderecoIService {
     public Endereco findById(Long id) {
         log.info("Buscando Endereço pelo ID: {}");
         if (id == null) {
-            throw new IllegalArgumentException(ID_NULL);
+            throw new BusinessException(ID_NULL);
         }
         return enderecoRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException(ENDERECO_NOT_FOUND));

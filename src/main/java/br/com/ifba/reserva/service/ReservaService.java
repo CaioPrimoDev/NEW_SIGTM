@@ -1,6 +1,7 @@
 package br.com.ifba.reserva.service;
 
 import br.com.ifba.evento.repository.EventoRepository;
+import br.com.ifba.infrastructure.exception.BusinessException;
 import br.com.ifba.pontoturistico.repository.PontoTuristicoRepository;
 import br.com.ifba.reserva.entity.Reserva;
 import br.com.ifba.reserva.repository.ReservaRepository;
@@ -45,30 +46,30 @@ public class ReservaService implements ReservaIService {
     // Valida os campos essenciais de uma Reserva.
     private void validarDadosReserva(Reserva reserva) {
         if (reserva == null) throw new IllegalArgumentException(RESERVA_NULL);
-        if (reserva.getUsuario() == null) throw new IllegalArgumentException("O usuário da reserva é obrigatório.");
+        if (reserva.getUsuario() == null) throw new BusinessException("O usuário da reserva é obrigatório.");
 
         // Valida se pelo menos um e apenas um item foi associado
         if (reserva.getPontoTuristico() == null && reserva.getEvento() == null) {
-            throw new IllegalArgumentException(ITEM_RESERVA_OBRIGATORIO);
+            throw new BusinessException(ITEM_RESERVA_OBRIGATORIO);
         }
         if (reserva.getPontoTuristico() != null && reserva.getEvento() != null) {
-            throw new IllegalArgumentException("A reserva não pode ser para um Ponto Turístico e um Evento simultaneamente.");
+            throw new BusinessException("A reserva não pode ser para um Ponto Turístico e um Evento simultaneamente.");
         }
 
         // Valida a existência do item que foi preenchido
         if (reserva.getPontoTuristico() != null) {
             if (!pontoTuristicoRepository.existsById(reserva.getPontoTuristico().getId())) {
-                throw new IllegalArgumentException(ITEM_INEXISTENTE);
+                throw new BusinessException(ITEM_INEXISTENTE);
             }
         } else { // Se não é ponto turístico, é evento
             if (!eventoRepository.existsById(reserva.getEvento().getId())) {
-                throw new IllegalArgumentException(ITEM_INEXISTENTE);
+                throw new BusinessException(ITEM_INEXISTENTE);
             }
         }
 
         // Valida a data
         if (reserva.getDataReserva() == null || reserva.getDataReserva().isBefore(LocalDate.now())) {
-            throw new IllegalArgumentException("A data da reserva deve ser futura.");
+            throw new BusinessException("A data da reserva deve ser futura.");
         }
     }
 
@@ -93,7 +94,7 @@ public class ReservaService implements ReservaIService {
         }
 
         if (!reservasExistentes.isEmpty() && !reservasExistentes.getFirst().getId().equals(reserva.getId())) {
-            throw new IllegalStateException(USUARIO_JA_POSSUI_RESERVA);
+            throw new BusinessException(USUARIO_JA_POSSUI_RESERVA);
         }
     }
 
@@ -103,7 +104,7 @@ public class ReservaService implements ReservaIService {
         Usuario usuario = usuarioLogado.getUsuarioLogado();
 
         if (usuario == null) {
-            throw new IllegalStateException(USUARIO_NAO_AUTENTICADO);
+            throw new BusinessException(USUARIO_NAO_AUTENTICADO);
         }
 
         // Verifica se o usuário logado é GESTOR
@@ -114,7 +115,7 @@ public class ReservaService implements ReservaIService {
 
         // Se não for gestor E não for o dono da reserva, nega a permissão
         if (!isGestor && !isDonoDaReserva) {
-            throw new IllegalStateException(PERMISSAO_NEGADA);
+            throw new BusinessException(PERMISSAO_NEGADA);
         }
     }
 
@@ -127,7 +128,7 @@ public class ReservaService implements ReservaIService {
         // Garante que o usuário da reserva é o que está logado na sessão
         Usuario usuarioSessao = usuarioLogado.getUsuarioLogado();
         if (usuarioSessao == null) {
-            throw new IllegalStateException(USUARIO_NAO_AUTENTICADO);
+            throw new BusinessException(USUARIO_NAO_AUTENTICADO);
         }
         reserva.setUsuario(usuarioSessao);
 
@@ -155,7 +156,7 @@ public class ReservaService implements ReservaIService {
     @Transactional
     public void delete(Reserva reserva){
         if (reserva == null || reserva.getId() == null) {
-            throw new IllegalArgumentException(RESERVA_NULL);
+            throw new BusinessException(RESERVA_NULL);
         }
 
 
@@ -168,11 +169,11 @@ public class ReservaService implements ReservaIService {
     @Override
     public Reserva findById(Long id) {
         if (id == null) {
-            throw new IllegalArgumentException("O ID para busca não pode ser nulo.");
+            throw new BusinessException("O ID para busca não pode ser nulo.");
         }
 
         Reserva reserva = reservaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(RESERVA_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(RESERVA_NOT_FOUND));
 
         // Verifica se o usuário tem permissão para visualizar a reserva
         validarPermissao(reserva);
@@ -184,7 +185,7 @@ public class ReservaService implements ReservaIService {
     public List<Reserva> findAll(){
         Usuario usuario = usuarioLogado.getUsuarioLogado();
         if (usuario == null) {
-            throw new IllegalStateException(USUARIO_NAO_AUTENTICADO);
+            throw new BusinessException(USUARIO_NAO_AUTENTICADO);
         }
 
         // Se for GESTOR, retorna todas as reservas
@@ -214,7 +215,7 @@ public class ReservaService implements ReservaIService {
         // Pega o usuário logado na sessão
         Usuario usuario = usuarioLogado.getUsuarioLogado();
         if (usuario == null) {
-            throw new IllegalStateException("Acesso negado. Nenhum usuário autenticado na sessão.");
+            throw new BusinessException("Acesso negado. Nenhum usuário autenticado na sessão.");
         }
 
         // Verifica se o usuário é um gestor

@@ -1,9 +1,9 @@
 package br.com.ifba.pessoa.service;
 
 
+import br.com.ifba.infrastructure.exception.BusinessException;
 import br.com.ifba.pessoa.entity.Pessoa;
 import br.com.ifba.pessoa.repository.PessoaRepository;
-import br.com.ifba.util.RegraNegocioException;
 import br.com.ifba.util.StringUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,11 +31,11 @@ public class PessoaService implements PessoaIService {
         } catch (DataIntegrityViolationException e) {
             // Violação de constraints do banco (ex: unique ou not null)
             log.error("Violação de integridade ao salvar Pessoa: {}", pessoa.getNome(), e);
-            throw new RegraNegocioException("Já existe uma pessoa com esse email ou dados inválidos.");
+            throw new BusinessException("Já existe uma pessoa com esse email ou dados inválidos.", e);
         } catch (RuntimeException e) {
             // Falha inesperada
             log.error("Erro inesperado ao salvar pessoa.", e);
-            throw new RegraNegocioException("Erro ao salvar pessoa.");
+            throw new BusinessException("Erro ao salvar pessoa.");
         }
     }
 
@@ -43,7 +43,7 @@ public class PessoaService implements PessoaIService {
     public void delete(Long id) {
         if (id == null || id <= 0) {
             log.warn("Tentativa de excluir Pessoa com ID inválido: {}", id);
-            throw new RegraNegocioException("ID de Pessoa inválido.");
+            throw new BusinessException("ID de Pessoa inválido.");
         }
 
         try {
@@ -52,10 +52,10 @@ public class PessoaService implements PessoaIService {
         } catch (EmptyResultDataAccessException e) {
             // ID não encontrado no banco
             log.error("Tentativa de exclusão de Pessoa inexistente (ID: {}).", id, e);
-            throw new RegraNegocioException("Pessoa não encontrado para exclusão.");
+            throw new BusinessException("Pessoa não encontrado para exclusão.", e);
         } catch (RuntimeException e) {
             log.error("Erro inesperado ao excluir Pessoa.", e);
-            throw new RegraNegocioException("Erro ao excluir Pessoa.");
+            throw new BusinessException("Erro ao excluir Pessoa.");
         }
     }
 
@@ -65,7 +65,7 @@ public class PessoaService implements PessoaIService {
             return repo.findAll();
         } catch (RuntimeException e) {
             log.error("Erro ao buscar todos as pessoas.", e);
-            throw new RegraNegocioException("Erro ao buscar todos as Pessoas.");
+            throw new BusinessException("Erro ao buscar todos as Pessoas.");
         }
     }
 
@@ -73,18 +73,18 @@ public class PessoaService implements PessoaIService {
     public Pessoa findById(Long id) {
         if (id == null || id <= 0) {
             log.warn("ID inválido fornecido para busca: {}", id);
-            throw new RegraNegocioException("ID inválido para busca.");
+            throw new BusinessException("ID inválido para busca.");
         }
 
         try {
             return repo.findById(id)
                     .orElseThrow(() -> {
                         log.warn("Pessoa não encontrado para ID: {}", id);
-                        return new RegraNegocioException("Pessoa não encontrado.");
+                        return new BusinessException("Pessoa não encontrado.");
                     });
         } catch (RuntimeException e) {
             log.error("Erro inesperado ao buscar Pessoa por ID.", e);
-            throw new RegraNegocioException("Erro ao buscar Pessoa por ID.");
+            throw new BusinessException("Erro ao buscar Pessoa por ID.");
         }
     }
 
@@ -105,22 +105,22 @@ public class PessoaService implements PessoaIService {
     private void validarPessoa(Pessoa pessoa) {
         if (pessoa == null) {
             log.warn("Pessoa recebido é nulo.");
-            throw new RegraNegocioException("Pessoa não pode ser nulo.");
+            throw new BusinessException("Pessoa não pode ser nulo.");
         }
 
         if (StringUtil.isNullOrEmpty(pessoa.getNome())) {
             log.warn("Nome do Usuário é nulo ou vazio.");
-            throw new RegraNegocioException("O nome da pessoa é obrigatório.");
+            throw new BusinessException("O nome da pessoa é obrigatório.");
         }
 
         if (!StringUtil.hasValidLength(pessoa.getNome(), 3, 30)) {
             log.warn("Nome da Pessoa fora do tamanho permitido: '{}'", pessoa.getNome());
-            throw new RegraNegocioException("O nome da Pessoa deve ter entre 3 e 30 caracteres.");
+            throw new BusinessException("O nome da Pessoa deve ter entre 3 e 30 caracteres.");
         }
 
         if (!StringUtil.isValidTelefone(pessoa.getTelefone())) {
             log.warn("Telefone da Pessoa invãlido: '{}'", pessoa.getNome());
-            throw new RegraNegocioException("O telefone da Pessoa deve possuir apenas números, e seguir as normas nacionais/internacionais.");
+            throw new BusinessException("O telefone da Pessoa deve possuir apenas números, e seguir as normas nacionais/internacionais.");
         }
     }
 

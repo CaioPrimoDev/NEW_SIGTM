@@ -1,10 +1,10 @@
 package br.com.ifba.usuario.service.user;
 
 
+import br.com.ifba.infrastructure.exception.BusinessException;
 import br.com.ifba.solicitacao.entity.Solicitacao;
 import br.com.ifba.usuario.entity.Usuario;
 import br.com.ifba.usuario.repository.UsuarioRepository;
-import br.com.ifba.util.RegraNegocioException;
 import br.com.ifba.util.StringUtil;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -34,11 +34,11 @@ public class UsuarioService implements UsuarioIService {
         } catch (DataIntegrityViolationException e) {
             // Violação de constraints do banco (ex: unique ou not null)
             log.error("Violação de integridade ao salvar Usuário: {}", user.getPessoa().getNome(), e);
-            throw new RegraNegocioException("Já existe um usuário com esse email ou dados inválidos.");
+            throw new BusinessException("Já existe um usuário com esse email ou dados inválidos.", e);
         } catch (RuntimeException e) {
             // Falha inesperada
             log.error("Erro inesperado ao salvar Usuário.", e);
-            throw new RegraNegocioException("Erro ao salvar Usuário.");
+            throw new BusinessException("Erro ao salvar Usuário.");
         }
     }
 
@@ -46,7 +46,7 @@ public class UsuarioService implements UsuarioIService {
     public void delete(Long id) {
         if (id == null || id <= 0) {
             log.warn("Tentativa de excluir Usuário com ID inválido: {}", id);
-            throw new RegraNegocioException("ID de Usuário inválido.");
+            throw new BusinessException("ID de Usuário inválido.");
         }
 
         try {
@@ -55,10 +55,10 @@ public class UsuarioService implements UsuarioIService {
         } catch (EmptyResultDataAccessException e) {
             // ID não encontrado no banco
             log.error("Tentativa de exclusão de Usuário inexistente (ID: {}).", id, e);
-            throw new RegraNegocioException("Usuário não encontrado para exclusão.");
+            throw new BusinessException("Usuário não encontrado para exclusão.", e);
         } catch (RuntimeException e) {
             log.error("Erro inesperado ao excluir Usuário.", e);
-            throw new RegraNegocioException("Erro ao excluir Usuário.");
+            throw new BusinessException("Erro ao excluir Usuário.");
         }
     }
 
@@ -68,7 +68,7 @@ public class UsuarioService implements UsuarioIService {
             return UserRepo.findAll();
         } catch (RuntimeException e) {
             log.error("Erro ao buscar todos os Usuário.", e);
-            throw new RegraNegocioException("Erro ao buscar todos os Usuário.");
+            throw new BusinessException("Erro ao buscar todos os Usuário.");
         }
     }
 
@@ -76,18 +76,18 @@ public class UsuarioService implements UsuarioIService {
     public Usuario findById(Long id) {
         if (id == null || id <= 0) {
             log.warn("ID inválido fornecido para busca: {}", id);
-            throw new RegraNegocioException("ID inválido para busca.");
+            throw new BusinessException("ID inválido para busca.");
         }
 
         try {
             return UserRepo.findById(id)
                     .orElseThrow(() -> {
                         log.warn("Usuário não encontrado para ID: {}", id);
-                        return new RegraNegocioException("Usuário não encontrado.");
+                        return new BusinessException("Usuário não encontrado.");
                     });
         } catch (RuntimeException e) {
             log.error("Erro inesperado ao buscar Usuário por ID.", e);
-            throw new RegraNegocioException("Erro ao buscar Usuário por ID.");
+            throw new BusinessException("Erro ao buscar Usuário por ID.");
         }
     }
 
@@ -95,17 +95,17 @@ public class UsuarioService implements UsuarioIService {
     public void validarUsuario(Usuario user) {
         if (user == null) {
             log.warn("Usuário recebido é nulo.");
-            throw new RegraNegocioException("O Usuário não pode ser nulo.");
+            throw new BusinessException("O Usuário não pode ser nulo.");
         }
 
         if (StringUtil.isNullOrEmpty(user.getPessoa().getNome())) {
             log.warn("Nome do Usuário é nulo ou vazio.");
-            throw new RegraNegocioException("O nome do Usuário é obrigatório.");
+            throw new BusinessException("O nome do Usuário é obrigatório.");
         }
 
         if (!StringUtil.hasValidLength(user.getPessoa().getNome(), 3, 30)) {
             log.warn("Nome do Usuário fora do tamanho permitido: '{}'", user.getPessoa().getNome());
-            throw new RegraNegocioException("O nome do Usuário deve ter entre 3 e 30 caracteres.");
+            throw new BusinessException("O nome do Usuário deve ter entre 3 e 30 caracteres.");
         }
     }
 
@@ -116,26 +116,26 @@ public class UsuarioService implements UsuarioIService {
         try {
             if (usuarioId == null || usuarioId <= 0) {
                 log.warn("ID inválido informado: {}", usuarioId);
-                throw new RegraNegocioException("ID do usuário inválido.");
+                throw new BusinessException("ID do usuário inválido.");
             }
 
             List<Solicitacao> solicitacoes = UserRepo.findSolicitacoesByUsuarioId(usuarioId);
 
             if (solicitacoes == null || solicitacoes.isEmpty()) {
                 log.warn("Nenhuma solicitação encontrada para o usuário ID: {}", usuarioId);
-                throw new RegraNegocioException("Nenhuma solicitação encontrada para este usuário.");
+                throw new BusinessException("Nenhuma solicitação encontrada para este usuário.");
             }
 
             log.info("Solicitações encontradas: {} itens", solicitacoes.size());
             return solicitacoes;
 
-        } catch (RegraNegocioException e) {
+        } catch (BusinessException e) {
             log.error("Erro de regra de negócio ao buscar solicitações: {}", e.getMessage());
             throw e;
 
         } catch (Exception e) {
             log.error("Erro inesperado ao buscar solicitações do usuário ID {}: {}", usuarioId, e.getMessage(), e);
-            throw new RegraNegocioException("Erro ao buscar solicitações. Tente novamente.");
+            throw new BusinessException("Erro ao buscar solicitações. Tente novamente.");
         }
     }
 

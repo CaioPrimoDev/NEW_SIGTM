@@ -1,17 +1,25 @@
 package br.com.ifba.promocao.dto.publico_promo;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-// DTO de Entrada (Cadastro e Atualização)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class PublicoPromocaoDTO {
-    // Validações poderiam ser adicionadas aqui (ex: @NotBlank)
+
+    @NotBlank(message = "O nome é obrigatório")
     private String nome;
+
+    @Size(max = 500)
     private String descricao;
+
+    @NotBlank(message = "A faixa etária é obrigatória")
     private String faixaEtaria;
+
+    @NotBlank(message = "O interesse é obrigatório")
     private String interesse;
 }

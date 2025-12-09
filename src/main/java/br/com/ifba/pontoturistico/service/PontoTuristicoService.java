@@ -2,6 +2,7 @@ package br.com.ifba.pontoturistico.service;
 
 import br.com.ifba.endereco.entity.Endereco;
 import br.com.ifba.endereco.service.EnderecoIService;
+import br.com.ifba.infrastructure.exception.BusinessException;
 import br.com.ifba.pontoturistico.entity.PontoTuristico;
 import br.com.ifba.pontoturistico.repository.PontoTuristicoRepository;
 import br.com.ifba.sessao.entity.UsuarioSession;
@@ -44,31 +45,31 @@ public class PontoTuristicoService implements PontoTuristicoIService {
     private void validarPontoTuristico(PontoTuristico pontoTuristico) {
         // Verifica se o ponto turistico nao é nulo
         if (pontoTuristico == null) {
-            throw new IllegalArgumentException(PONTO_TURISTICO_NULL);
+            throw new BusinessException(PONTO_TURISTICO_NULL);
         }
         // Verifica se o campo foi preenchido devidamente
         if (StringUtil.isNullOrEmpty(pontoTuristico.getNome())) {
-            throw new IllegalArgumentException("O campo 'nome' é obrigatório.");
+            throw new BusinessException("O campo 'nome' é obrigatório.");
         }
         // Verifica se o campo foi preenchido devidamente
         if (pontoTuristico.getEndereco() == null) {
-            throw new IllegalArgumentException("Os dados de 'endereco' (endereço) são obrigatórios.");
+            throw new BusinessException("Os dados de 'endereco' (endereço) são obrigatórios.");
         }
         // Verifica se o campo foi preenchido devidamente
         if (StringUtil.isNullOrEmpty(pontoTuristico.getHorarioAbertura())) {
-            throw new IllegalArgumentException("O campo 'horarioAbertura' é obrigatório.");
+            throw new BusinessException("O campo 'horarioAbertura' é obrigatório.");
         }
         // Valida o formato do horário de abertura
         if (!StringUtil.isValidHorario(pontoTuristico.getHorarioAbertura())) {
-            throw new IllegalArgumentException("O formato do horário de abertura é inválido. Use HH:mm.");
+            throw new BusinessException("O formato do horário de abertura é inválido. Use HH:mm.");
         }
         // Verifica se o campo foi preenchido devidamente
         if (StringUtil.isNullOrEmpty(pontoTuristico.getHorarioFechamento())) {
-            throw new IllegalArgumentException("O campo 'horarioFechamento' é obrigatório.");
+            throw new BusinessException("O campo 'horarioFechamento' é obrigatório.");
         }
         // Valida o formato do horário de fechamento
         if (!StringUtil.isValidHorario(pontoTuristico.getHorarioFechamento())) {
-            throw new IllegalArgumentException("O formato do horário de fechamento é inválido. Use HH:mm.");
+            throw new BusinessException("O formato do horário de fechamento é inválido. Use HH:mm.");
         }
     }
 
@@ -76,13 +77,13 @@ public class PontoTuristicoService implements PontoTuristicoIService {
     public void verificaGestor(UsuarioSession userLogado){
         // Verifica se o usuário está logado
         if (this.usuarioLogado == null || !this.usuarioLogado.isLogado()) {
-            throw new IllegalStateException("Acesso negado. Nenhum usuário autenticado na sessão.");
+            throw new BusinessException("Acesso negado. Nenhum usuário autenticado na sessão.");
         }
 
         // Verifica se o tipo do usuário é GESTOR
         String tipoUsuario = this.usuarioLogado.getUsuarioLogado().getTipo().getNome();
         if (!"GESTOR".equals(tipoUsuario)) {
-            throw new IllegalStateException(PERMISSAO_INSUFICIENTE);
+            throw new BusinessException(PERMISSAO_INSUFICIENTE);
         }
     }
 
@@ -92,7 +93,7 @@ public class PontoTuristicoService implements PontoTuristicoIService {
     private void validarUnicidadeDeEnderecoParaPontoTuristico(PontoTuristico pontoTuristico) {
         Optional<PontoTuristico> pontoExistente = pontoTuristicoRepository.findByEndereco(pontoTuristico.getEndereco());
         if (pontoExistente.isPresent() && !pontoExistente.get().getId().equals(pontoTuristico.getId())) {
-            throw new IllegalStateException(ENDERECO_JA_UTILIZADO);
+            throw new BusinessException(ENDERECO_JA_UTILIZADO);
         }
     }
 
@@ -131,7 +132,7 @@ public class PontoTuristicoService implements PontoTuristicoIService {
     @Transactional
     public void delete(PontoTuristico pontoTuristico) {
         if (pontoTuristico == null || pontoTuristico.getId() == null) {
-            throw new IllegalArgumentException(PONTO_TURISTICO_NULL);
+            throw new BusinessException(PONTO_TURISTICO_NULL);
         }
 
         // realiza a verificacao do tipo de usuario logado antes de prosseguir
@@ -155,7 +156,7 @@ public class PontoTuristicoService implements PontoTuristicoIService {
     public PontoTuristico findById(Long id) {
         log.info("Buscando Ponto Turístico pelo ID: {}", id);
         if (id == null) {
-            throw new IllegalArgumentException("O ID para busca não pode ser nulo.");
+            throw new BusinessException("O ID para busca não pode ser nulo.");
         }
         return pontoTuristicoRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException(PONTO_TURISTICO_NOT_FOUND));

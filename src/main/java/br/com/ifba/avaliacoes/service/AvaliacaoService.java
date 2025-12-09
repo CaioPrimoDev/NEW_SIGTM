@@ -2,6 +2,7 @@ package br.com.ifba.avaliacoes.service;
 
 import br.com.ifba.avaliacoes.entity.Avaliacao;
 import br.com.ifba.avaliacoes.repository.AvaliacaoRepository;
+import br.com.ifba.infrastructure.exception.BusinessException;
 import br.com.ifba.pontoturistico.entity.PontoTuristico;
 import br.com.ifba.pontoturistico.repository.PontoTuristicoRepository;
 import br.com.ifba.util.RegraNegocioException;
@@ -38,7 +39,7 @@ public class AvaliacaoService implements AvaliacaoIService {
             return avaliacoes;
         } catch (RuntimeException e) {
             log.error("Erro ao buscar avaliações para ponto ID={}", pontoId, e);
-            throw new RegraNegocioException("Erro ao buscar avaliações para o ponto turístico.");
+            throw new BusinessException("Erro ao buscar avaliações para o ponto turístico.");
         }
     }
 
@@ -53,7 +54,7 @@ public class AvaliacaoService implements AvaliacaoIService {
             return avaliacoes;
         } catch (RuntimeException e) {
             log.error("Erro ao buscar melhores avaliações para ponto ID={}", pontoId, e);
-            throw new RegraNegocioException("Erro ao buscar melhores avaliações.");
+            throw new BusinessException("Erro ao buscar melhores avaliações.");
         }
     }
 
@@ -68,7 +69,7 @@ public class AvaliacaoService implements AvaliacaoIService {
             return avaliacoes;
         } catch (RuntimeException e) {
             log.error("Erro ao buscar piores avaliações para ponto ID={}", pontoId, e);
-            throw new RegraNegocioException("Erro ao buscar piores avaliações.");
+            throw new BusinessException("Erro ao buscar piores avaliações.");
         }
     }
 
@@ -82,7 +83,7 @@ public class AvaliacaoService implements AvaliacaoIService {
             return avaliacoes;
         } catch (RuntimeException e) {
             log.error("Erro ao buscar avaliações do Usuario com ID={}", usuarioId, e);
-            throw new RegraNegocioException("Erro ao buscar avaliações.");
+            throw new BusinessException("Erro ao buscar avaliações.");
         }
     }
 
@@ -106,10 +107,10 @@ public class AvaliacaoService implements AvaliacaoIService {
             return repo.save(avaliacao);
         } catch (DataIntegrityViolationException e) {
             log.error("Violação de integridade ao salvar Avaliação para ponto ID={}", pontoId, e);
-            throw new RegraNegocioException("Dados da avaliação inválidos ou duplicados.");
+            throw new BusinessException("Dados da avaliação inválidos ou duplicados.", e);
         } catch (RuntimeException e) {
             log.error("Erro inesperado ao salvar Avaliação para ponto ID={}", pontoId, e);
-            throw new RegraNegocioException("Erro ao salvar avaliação.");
+            throw new BusinessException("Erro ao salvar avaliação.");
         }
     }
 
@@ -124,10 +125,10 @@ public class AvaliacaoService implements AvaliacaoIService {
             log.info("Avaliação ID={} removida com sucesso.", id);
         } catch (EmptyResultDataAccessException e) {
             log.error("Tentativa de exclusão de Avaliação inexistente ID={}", id, e);
-            throw new RegraNegocioException("Avaliação não encontrada para exclusão.");
+            throw new BusinessException("Avaliação não encontrada para exclusão.", e);
         } catch (RuntimeException e) {
             log.error("Erro inesperado ao excluir Avaliação ID={}", id, e);
-            throw new RegraNegocioException("Erro ao excluir avaliação.");
+            throw new BusinessException("Erro ao excluir avaliação.");
         }
     }
 
@@ -148,14 +149,14 @@ public class AvaliacaoService implements AvaliacaoIService {
                 return repo.save(existing);
             }).orElseThrow(() -> {
                 log.warn("Avaliação não encontrada para atualização ID={}", id);
-                return new RegraNegocioException("Avaliação não encontrada");
+                return new BusinessException("Avaliação não encontrada");
             });
         } catch (DataIntegrityViolationException e) {
             log.error("Violação de integridade ao atualizar Avaliação ID={}", id, e);
-            throw new RegraNegocioException("Dados da avaliação inválidos.");
+            throw new BusinessException("Dados da avaliação inválidos.", e);
         } catch (RuntimeException e) {
             log.error("Erro inesperado ao atualizar Avaliação ID={}", id, e);
-            throw new RegraNegocioException("Erro ao atualizar avaliação.");
+            throw new BusinessException("Erro ao atualizar avaliação.");
         }
     }
 
@@ -168,11 +169,11 @@ public class AvaliacaoService implements AvaliacaoIService {
             return repo.findById(id)
                     .orElseThrow(() -> {
                         log.warn("Avaliação não encontrada para ID={}", id);
-                        return new RegraNegocioException("Avaliação não encontrada.");
+                        return new BusinessException("Avaliação não encontrada.");
                     });
         } catch (RuntimeException e) {
             log.error("Erro inesperado ao buscar Avaliação por ID={}", id, e);
-            throw new RegraNegocioException("Erro ao buscar avaliação por ID.");
+            throw new BusinessException("Erro ao buscar avaliação por ID.");
         }
     }
 
@@ -180,17 +181,17 @@ public class AvaliacaoService implements AvaliacaoIService {
     private void validarAvaliacao(Avaliacao avaliacao) {
         if (avaliacao == null) {
             log.warn("Avaliação recebida é nula.");
-            throw new RegraNegocioException("A avaliação não pode ser nula.");
+            throw new BusinessException("A avaliação não pode ser nula.");
         }
 
         if (!StringUtils.hasText(avaliacao.getNomeAutor())) {
             log.warn("Nome do autor da avaliação está vazio.");
-            throw new RegraNegocioException("O nome do Autor da avaliação é obrigatório.");
+            throw new BusinessException("O nome do Autor da avaliação é obrigatório.");
         }
 
         if (avaliacao.getEstrelas() < 1 || avaliacao.getEstrelas() > 5) {
             log.warn("Número de estrelas inválido: {}", avaliacao.getEstrelas());
-            throw new RegraNegocioException("A avaliação deve ter entre 1 e 5 estrelas.");
+            throw new BusinessException("A avaliação deve ter entre 1 e 5 estrelas.");
         }
 
         if (!StringUtils.hasText(avaliacao.getDescricao())) {
@@ -201,14 +202,14 @@ public class AvaliacaoService implements AvaliacaoIService {
     private void validarIdPonto(Long pontoId) {
         if (pontoId == null || pontoId <= 0) {
             log.warn("ID de ponto turístico inválido: {}", pontoId);
-            throw new RegraNegocioException("ID de ponto turístico inválido.");
+            throw new BusinessException("ID de ponto turístico inválido.");
         }
     }
 
     private void validarIdAvaliacao(Long id) {
         if (id == null || id <= 0) {
             log.warn("ID de Avaliação inválido: {}", id);
-            throw new RegraNegocioException("ID de avaliação inválido.");
+            throw new BusinessException("ID de avaliação inválido.");
         }
     }
 }
