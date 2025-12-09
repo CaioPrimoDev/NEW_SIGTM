@@ -1,5 +1,7 @@
 package br.com.ifba.pontoturistico.controller;
 
+import br.com.ifba.endereco.dto.EnderecoCadastroDTO;
+import br.com.ifba.endereco.entity.Endereco;
 import br.com.ifba.infrastructure.mapper.ObjectMapperUtill;
 import br.com.ifba.pessoa.other_users.gestor.entity.Gestor;
 import br.com.ifba.pontoturistico.dto.PontoTuristicoDTO;
@@ -21,30 +23,61 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping(value = "/pontos-turisticos", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class PontoTuristicoController {
 
     private final PontoTuristicoIService service;
     private final UsuarioSession usuarioSession;
     private final ObjectMapperUtill mapper;
 
-    @PostMapping(value = "/save", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PontoTuristicoResponseDTO> salvar(@RequestBody @Valid PontoTuristicoDTO dto) {
+    @PostMapping("/save")
+    public ResponseEntity<?> save(@Valid @RequestBody PontoTuristicoDTO dto) {
+        try {
+            // =============================
+            // 1. Montar a entidade manualmente
+            // =============================
 
-        PontoTuristico entity = mapper.map(dto, PontoTuristico.class);
+            PontoTuristico entity = new PontoTuristico();
+            entity.setNome(dto.getNome());
+            entity.setDescricao(dto.getDescricao());
+            entity.setNivelAcessibilidade(dto.getNivelAcessibilidade());
+            entity.setHorarioAbertura(dto.getHorarioAbertura());
+            entity.setHorarioFechamento(dto.getHorarioFechamento());
 
-        // Lógica de vincular gestor logado
-        if (usuarioSession.isLogado()) {
-            Usuario usuario = usuarioSession.getUsuarioLogado();
-            if (usuario.getPessoa() instanceof Gestor) {
-                entity.setGestor((Gestor) usuario.getPessoa());
-            }
+            // =============================
+            // 2. Criar o Endereço manualmente
+            // =============================
+
+            EnderecoCadastroDTO e = dto.getEndereco();
+
+            Endereco endereco = new Endereco();
+            endereco.setEstado(e.getEstado());
+            endereco.setCidade(e.getCidade());
+            endereco.setBairro(e.getBairro());
+            endereco.setRua(e.getRua());
+            endereco.setNumero(e.getNumero());
+
+            // Associar o endereço
+            entity.setEndereco(endereco);
+
+            // =============================
+            // 3. Chamar o service corretamente
+            // =============================
+
+            PontoTuristico salvo = service.save(entity);
+
+            // =============================
+            // 4. Retornar 201 Created
+            // =============================
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao salvar o ponto turístico: " + ex.getMessage());
         }
-
-        service.save(entity);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(mapToResponse(entity));
     }
+
 
     @PutMapping(value = "/update/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PontoTuristicoResponseDTO> atualizar(@PathVariable Long id,
