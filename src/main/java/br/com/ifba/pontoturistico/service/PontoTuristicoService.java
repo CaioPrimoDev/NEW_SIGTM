@@ -132,7 +132,7 @@ public class PontoTuristicoService implements PontoTuristicoIService {
         }
 
         // realiza a verificacao do tipo de usuario logado antes de prosseguir
-        verificaGestor(usuarioLogado);
+        // verificaGestor(usuarioLogado);
 
         // Garante que o objeto existe antes de deletar
         PontoTuristico existente = this.findById(pontoTuristico.getId());
