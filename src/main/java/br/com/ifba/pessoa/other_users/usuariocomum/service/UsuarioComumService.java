@@ -11,6 +11,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -23,9 +24,11 @@ public class UsuarioComumService implements UsuarioComumIService {
 
     @Override
     public boolean save(UsuarioComum usuario) {
-        validarUsuarioComum(usuario);
 
         try {
+            if (usuario.getDataCadastro() == null) {
+                usuario.setDataCadastro(LocalDateTime.now());
+            }
             repo.save(usuario);
             return true;
 
@@ -68,34 +71,6 @@ public class UsuarioComumService implements UsuarioComumIService {
         } catch (RuntimeException e) {
             log.error("Erro ao buscar todos os Usuários Comuns.", e);
             throw new BusinessException("Erro ao buscar todos os Usuários Comuns.");
-        }
-    }
-    private void validarUsuarioComum(UsuarioComum usuario) {
-        if (usuario == null) {
-            log.warn("UsuarioComum recebido é nulo.");
-            throw new BusinessException("Usuário Comum não pode ser nulo.");
-        }
-
-        // Validações herdadas de Pessoa (nome, telefone, etc.)
-        if (StringUtil.isNullOrEmpty(usuario.getNome())) {
-            log.warn("Nome do UsuarioComum é nulo ou vazio.");
-            throw new BusinessException("O nome do Usuário Comum é obrigatório.");
-        }
-
-        if (!StringUtil.hasValidLength(usuario.getNome(), 3, 30)) {
-            log.warn("Nome do UsuarioComum fora do tamanho permitido: '{}'", usuario.getNome());
-            throw new BusinessException("O nome deve ter entre 3 e 30 caracteres.");
-        }
-
-        if (!StringUtil.isValidTelefone(usuario.getTelefone())) {
-            log.warn("Telefone inválido para UsuarioComum: '{}'", usuario.getTelefone());
-            throw new BusinessException("Telefone inválido.");
-        }
-
-        // Validação específica
-        if (!StringUtil.isCpfOuCnpjValido(usuario.getCpf())) {
-            log.warn("CPF inválido para UsuarioComum: '{}'", usuario.getCpf());
-            throw new BusinessException("O CPF informado é inválido.");
         }
     }
 
