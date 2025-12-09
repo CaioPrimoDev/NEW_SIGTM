@@ -246,7 +246,7 @@ public class ParceiroService implements ParceiroIService {
         // Atualizar Usuario
         usuario.setTipo(tipoComum);
         usuario.setPessoa(pessoaAntiga);
-        boolean usuarioSalvo = usuarioService.save(usuario);
+        boolean usuarioSalvo = usuarioService.save(usuario).isAtivo();
         if (!usuarioSalvo) {
             throw new BusinessException("Erro ao atualizar usuário.");
         }

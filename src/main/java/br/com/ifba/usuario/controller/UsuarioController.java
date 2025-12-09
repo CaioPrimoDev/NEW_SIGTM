@@ -38,22 +38,13 @@ public class UsuarioController {
     @PostMapping(value = "/save", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UsuarioResponseDTO> salvar(@RequestBody @Valid UsuarioCadastroDTO dto) {
 
-        // 1. Converte o básico (email, senha)
-        Usuario usuario = mapper.map(dto, Usuario.class);
+        // O Controller agora apenas ENTREGA o DTO para o Service.
+        // O Service vai criar o Usuario, a Pessoa, vincular o Tipo e salvar tudo.
+        Usuario usuarioSalvo = service.save(dto);
 
-        // 2. BUSCA OS DADOS NO BANCO PELO ID (Isso evita o Erro 500)
-        Pessoa pessoa = pessoaService.findById(dto.getPessoaId());
-        TipoUsuario tipo = tipoUsuarioService.findById(dto.getTipoUsuarioId());
-
-        // 3. VINCULA OS OBJETOS AO USUÁRIO
-        usuario.setPessoa(pessoa);
-        usuario.setTipo(tipo);
-
-        // 4. Salva o usuário completo
-        service.save(usuario);
-
+        // Converte o resultado final (já com ID gerado) para o DTO de resposta
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(mapper.map(usuario, UsuarioResponseDTO.class));
+                .body(mapper.map(usuarioSalvo, UsuarioResponseDTO.class));
     }
 
     // --- DELETAR ---

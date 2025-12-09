@@ -4,6 +4,7 @@ import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.validator.constraints.br.CPF;
 
 @Data
 @NoArgsConstructor
@@ -11,19 +12,25 @@ import lombok.NoArgsConstructor;
 public class UsuarioCadastroDTO {
 
     @NotBlank(message = "O e-mail é obrigatório")
-    @Email(message = "O e-mail deve ser válido")
+    @Email
     private String email;
 
     @NotBlank(message = "A senha é obrigatória")
-    @Size(min = 6, message = "A senha deve ter no mínimo 6 caracteres")
+    @Size(min = 6)
     private String senha;
 
-    // IDs para vínculo (Relacionamentos)
-    @NotNull(message = "O ID do tipo de usuário é obrigatório")
-    @Positive(message = "O ID deve ser um número positivo")
+    // ID do tipo continua, pois o TIPO já existe no banco (ex: Admin, Comum)
+    @NotNull
     private Long tipoUsuarioId;
 
-    @NotNull(message = "O ID da pessoa é obrigatório")
-    @Positive
-    private Long pessoaId;
+    private String telefone;
+
+    // --- DADOS DA PESSOA (Ao invés do ID) ---
+
+    @NotBlank(message = "O CPF é obrigatório")
+    @CPF(message = "CPF inválido") // Se tiver a lib Hibernate Validator
+    private String cpf;
+
+    @NotBlank(message = "O nome é obrigatório") // Imagino que Pessoa tenha nome
+    private String nome;
 }

@@ -15,4 +15,4 @@ import lombok.*;
 public class UsuarioComum extends Pessoa {
         @Column(unique = true)
         private String cpf;
-    }
+}

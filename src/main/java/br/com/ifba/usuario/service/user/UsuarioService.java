@@ -2,16 +2,25 @@ package br.com.ifba.usuario.service.user;
 
 
 import br.com.ifba.infrastructure.exception.BusinessException;
+import br.com.ifba.pessoa.other_users.usuariocomum.entity.UsuarioComum;
+import br.com.ifba.pessoa.other_users.usuariocomum.repository.UsuarioComumRepository;
 import br.com.ifba.solicitacao.entity.Solicitacao;
+import br.com.ifba.usuario.dto.user.UsuarioCadastroDTO;
+import br.com.ifba.usuario.entity.TipoUsuario;
 import br.com.ifba.usuario.entity.Usuario;
+import br.com.ifba.usuario.repository.TipoUsuarioRepository;
 import br.com.ifba.usuario.repository.UsuarioRepository;
 import br.com.ifba.util.StringUtil;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  *
@@ -24,21 +33,58 @@ import org.springframework.stereotype.Service;
 public class UsuarioService implements UsuarioIService {
 
     private final UsuarioRepository UserRepo;
+    private final TipoUsuarioRepository TipoRepo;
+    private final UsuarioComumRepository UsuarioComumRepo;
 
     @Override
-    public boolean save(Usuario user) {
-        validarUsuario(user);
+    @Transactional
+    public Usuario save(UsuarioCadastroDTO dto)     {
+        // 1. Instancia e popula a PESSOA (UsuarioComum)
+        UsuarioComum novaPessoa = new UsuarioComum();
+        novaPessoa.setCpf(dto.getCpf());
+        novaPessoa.setNome(dto.getNome());
+        novaPessoa.setDataCadastro(LocalDateTime.now());
+        novaPessoa.setTelefone(dto.getTelefone());
+        UsuarioComumRepo.save(novaPessoa);
+        // novaPessoa.set... outros dados de pessoa
+
+        // 2. Instancia o USUÁRIO
+        Usuario usuario = new Usuario();
+        usuario.setEmail(dto.getEmail());
+        usuario.setSenha(dto.getSenha()); // Lembre-se de encodar a senha!
+        usuario.setAtivo(true);
+        usuario.setUltimoLogin(LocalDate.now());
+
+        // 3. Busca o TIPO (que já existe)
+        TipoUsuario tipo = TipoRepo.findById(dto.getTipoUsuarioId())
+                .orElseThrow(() -> new BusinessException("Tipo não encontrado"));
+        usuario.setTipo(tipo);
+
+        // 4. VINCULA A PESSOA AO USUÁRIO
+        usuario.setPessoa(novaPessoa);
+
+        // 5. SALVA TUDO
+        // Graças ao CascadeType.ALL na entidade Usuario,
+        // isso vai salvar o UsuarioComum na tabela dele e o Usuario na tabela dele.
+        return UserRepo.save(usuario);
+    }
+
+    @Override
+    @Transactional
+    public Usuario save(Usuario usuario) {
+        // Se precisar de validação final, chame aqui:
+        // validarUsuario(usuario);
+
         try {
-            UserRepo.save(user);
-            return true;
+            // Aqui acontece o INSERT real no banco
+            return UserRepo.save(usuario);
         } catch (DataIntegrityViolationException e) {
-            // Violação de constraints do banco (ex: unique ou not null)
-            log.error("Violação de integridade ao salvar Usuário: {}", user.getPessoa().getNome(), e);
-            throw new BusinessException("Já existe um usuário com esse email ou dados inválidos.", e);
-        } catch (RuntimeException e) {
-            // Falha inesperada
+            // Tratamento centralizado de erros de banco (ex: email duplicado)
+            log.error("Violação de integridade ao salvar Usuário: {}", usuario.getEmail(), e);
+            throw new BusinessException("Erro de integridade: Dados duplicados ou inválidos.", e);
+        } catch (Exception e) {
             log.error("Erro inesperado ao salvar Usuário.", e);
-            throw new BusinessException("Erro ao salvar Usuário.");
+            throw new BusinessException("Erro ao processar o salvamento do usuário.");
         }
     }
 
