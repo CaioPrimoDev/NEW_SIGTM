@@ -8,13 +8,13 @@ import br.com.ifba.pontoturistico.repository.PontoTuristicoRepository;
 import br.com.ifba.util.StringUtil;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.logging.Logger;
 
 /**
  *
@@ -24,15 +24,14 @@ import java.util.logging.Logger;
 @RequiredArgsConstructor
 public class EnderecoService implements EnderecoIService {
 
+    private static final Logger log = LoggerFactory.getLogger(EnderecoService.class);
+
     // Constantes para mensagens de erro
     private static final String ENDERECO_NULL = "Dados do Endereço não fornecidos.";
     private static final String ENDERECO_NOT_FOUND = "Endereço não encontrado na base de dados.";
     private static final String ENDERECO_DUPLICADO = "Já existe um endereço exatamente igual cadastrado.";
     private static final String ENDERECO_EM_USO = "Este endereço não pode ser deletado, pois está em uso por um Ponto Turístico ou Evento.";
     private static final String ID_NULL = "O ID do Endereço não pode ser nulo.";
-
-    private static final Logger log = (Logger) LoggerFactory.
-            getLogger(EnderecoService.class);
 
     // Injeção dos repositórios
     private final EnderecoRepository enderecoRepository;
@@ -83,12 +82,15 @@ public class EnderecoService implements EnderecoIService {
     @Override
     @Transactional
     public Endereco update(Endereco endereco) {
-        log.info("Iniciando atualização do Endereço de ID: {}");
+        log.info("Iniciando atualização do Endereço de ID: {}", endereco.getId());
+
         if (endereco.getId() == null || !enderecoRepository.existsById(endereco.getId())) {
             throw new NoSuchElementException(ENDERECO_NOT_FOUND);
         }
+
         validarCamposObrigatorios(endereco);
         validarDuplicidade(endereco);
+
         log.info("Endereço validado. Atualizando...");
         return enderecoRepository.save(endereco);
     }
@@ -96,7 +98,8 @@ public class EnderecoService implements EnderecoIService {
     @Override
     @Transactional
     public void deleteById(Long id) {
-        log.info("Iniciando deleção do Endereço de ID: {}");
+        log.info("Iniciando deleção do Endereço de ID: {}", id);
+
         if (id == null) {
             throw new BusinessException(ID_NULL);
         }
@@ -105,7 +108,7 @@ public class EnderecoService implements EnderecoIService {
         }
 
         enderecoRepository.deleteById(id);
-        log.info("Endereço de ID {} deletado com sucesso.");
+        log.info("Endereço de ID {} deletado com sucesso.", id);
     }
 
     @Override
@@ -118,10 +121,12 @@ public class EnderecoService implements EnderecoIService {
     @Override
     @Transactional(readOnly = true)
     public Endereco findById(Long id) {
-        log.info("Buscando Endereço pelo ID: {}");
+        log.info("Buscando Endereço pelo ID: {}", id);
+
         if (id == null) {
             throw new BusinessException(ID_NULL);
         }
+
         return enderecoRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException(ENDERECO_NOT_FOUND));
     }
@@ -129,11 +134,9 @@ public class EnderecoService implements EnderecoIService {
     @Override
     @Transactional
     public Endereco encontrarOuCriarEndereco(Endereco dadosEndereco) {
-        // Valida se os campos básicos foram preenchidos
         validarCamposObrigatorios(dadosEndereco);
 
-        // Usa o metodo para buscar um endereço idêntico
-        Optional<Endereco> enderecoExistente = enderecoRepository.findByEstadoAndCidadeAndBairroAndRuaAndNumero(
+        Optional<Endereco> existente = enderecoRepository.findByEstadoAndCidadeAndBairroAndRuaAndNumero(
                 dadosEndereco.getEstado(),
                 dadosEndereco.getCidade(),
                 dadosEndereco.getBairro(),
@@ -141,13 +144,11 @@ public class EnderecoService implements EnderecoIService {
                 dadosEndereco.getNumero()
         );
 
-        // Se o endereço já existe, simplesmente o retorna.
-        if (enderecoExistente.isPresent()) {
-            log.info("Endereço já existente encontrado com ID: {}. Reutilizando.");
-            return enderecoExistente.get();
+        if (existente.isPresent()) {
+            log.info("Endereço já existente encontrado com ID: {}. Reutilizando.", existente.get().getId());
+            return existente.get();
         }
 
-        // Se não existe, salva o novo endereço e o retorna.
         log.info("Nenhum endereço correspondente encontrado. Criando um novo.");
         return enderecoRepository.save(dadosEndereco);
     }
