@@ -27,7 +27,7 @@ public class Usuario extends PersistenceEntity {
     @Column(nullable = false)
     private boolean ativo;
 
-    @OneToOne
+    @ManyToOne
     private TipoUsuario tipo;
 
     @Column(nullable = false)
