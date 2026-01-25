@@ -4,8 +4,11 @@ import br.com.ifba.infrastructure.mapper.ObjectMapperUtill;
 import br.com.ifba.sessao.dto.LoginDTO;
 import br.com.ifba.sessao.dto.SessaoResponseDTO;
 import br.com.ifba.sessao.entity.UsuarioSession;
+import br.com.ifba.sessao.service.UsuarioSessionIService;
 import br.com.ifba.sessao.service.UsuarioSessionService;
 import br.com.ifba.usuario.entity.Usuario;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,18 +21,25 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final UsuarioSessionService service;
+    private final UsuarioSessionIService service;
     private final UsuarioSession usuarioSession;
     private final ObjectMapperUtill mapper;
 
     @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<SessaoResponseDTO> login(@RequestBody @Valid LoginDTO dto) {
+    public ResponseEntity<SessaoResponseDTO> login(@RequestBody @Valid LoginDTO dto,
+                                                   HttpServletRequest request) {
         Usuario usuarioValidado = service.validarLogin(dto.getEmail(), dto.getSenha());
-        usuarioSession.setUsuarioLogado(usuarioValidado);
 
+        // --- SOLUÇÃO MANUAL ---
+        HttpSession session = request.getSession(true); // Cria ou recupera a sessão real
+        session.setAttribute("EMAIL_LOGADO", usuarioValidado.getEmail()); // Grava no motor do servidor
+
+        service.setEmailLogado(usuarioValidado.getEmail());
+
+        System.out.println("Login Controller: Email salvo na sessão = " + usuarioValidado.getEmail());
+
+        // 3. Resposta
         SessaoResponseDTO response = mapper.map(usuarioValidado, SessaoResponseDTO.class);
-
-        // Mapeamento manual
         if (usuarioValidado.getPessoa() != null) {
             response.setNome(usuarioValidado.getPessoa().getNome());
         }

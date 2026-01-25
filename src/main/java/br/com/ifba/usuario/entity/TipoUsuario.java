@@ -5,6 +5,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import lombok.*;
 
+import java.io.Serializable;
+
 @Entity
 @Getter @Setter
 @NoArgsConstructor

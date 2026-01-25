@@ -12,13 +12,15 @@ public class CorsConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOrigins("http://localhost:3000")
 
+                // ESSENCIAL: Permite cookies/sessão
+                .allowCredentials(true)
+
                 // Permite os métodos necessários
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "TRACE", "CONNECT")
 
                 // Permite todos os cabeçalhos
-                .allowedHeaders("*")
+                .allowedHeaders("*");
 
-                // ESSENCIAL: Permite cookies/sessão
-                .allowCredentials(true);
+
     }
 }

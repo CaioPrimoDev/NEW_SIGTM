@@ -15,6 +15,7 @@ public class DataInitializer {
             if (repository.count() == 0) {
                 repository.save(new TipoUsuario("ADMIN", "Administrador"));
                 repository.save(new TipoUsuario("COMUM", "Usuário Comum"));
+                repository.save(new TipoUsuario("PARCEIRO", "Parceiro"));
                 System.out.println("Tipos de usuário inicializados com sucesso!");
             }
         };

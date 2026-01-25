@@ -1,55 +1,93 @@
-package br.com.ifba.sessao.service;
+package br.com.ifba.sessao.service; // Ajuste seu pacote
 
 
-import br.com.ifba.infrastructure.exception.BusinessException;
+import br.com.ifba.sessao.service.UsuarioSessionIService;
 import br.com.ifba.usuario.entity.Usuario;
 import br.com.ifba.usuario.repository.UsuarioRepository;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.annotation.SessionScope;
+import br.com.ifba.infrastructure.exception.BusinessException; // Ajuste seu pacote
 
+import java.io.Serializable;
 import java.util.Optional;
 
 @Service
+@SessionScope(proxyMode = ScopedProxyMode.TARGET_CLASS)
 @Slf4j
 @RequiredArgsConstructor
-public class UsuarioSessionService implements UsuarioSessionIService {
+@Getter @Setter
+public class UsuarioSessionService implements UsuarioSessionIService, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final UsuarioRepository usuarioRepository;
 
+    private String emailLogado;
+
     /**
-     * Valida "login" pelo email e senha.
-     * Lança RegraNegocioException se inválido.
+     * Verifica se existe um email guardado na sessão
+     */
+    @Override
+    public boolean isLogado() {
+        return this.emailLogado != null && !this.emailLogado.isEmpty();
+    }
+
+    /**
+     * Recupera o objeto completo do banco de dados na hora que precisa.
+     * Isso evita erros de serialização e lazy loading.
+     */
+    @Override
+    public Usuario getUsuarioLogado() {
+        if (!isLogado()) {
+            return null;
+        }
+        // Busca fresquinho no banco
+        return usuarioRepository.findByEmail(this.emailLogado)
+                .orElse(null);
+    }
+
+    /**
+     * Valida senha e retorna o usuário (lógica de negócio)
      */
     @Override
     public Usuario validarLogin(String email, String senha) {
         log.info("Tentando login do usuário com email: {}", email);
 
         if (email == null || email.trim().isEmpty() || senha == null || senha.isEmpty()) {
-            log.warn("Email ou senha nulos/invalidos");
             throw new BusinessException("Email e senha são obrigatórios.");
         }
 
-        Optional<Usuario> usuario = usuarioRepository.findByEmail(email);
+        Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
 
-        if (usuario.isEmpty()) {
-            log.warn("Usuário não encontrado: {}", email);
+        if (usuarioOpt.isEmpty()) {
             throw new BusinessException("Usuário ou senha inválidos.");
         }
 
-        if (!usuario.get().getSenha().equals(senha)) {
-            log.warn("Senha incorreta para o usuário: {}", email);
+        Usuario usuario = usuarioOpt.get();
+
+        if (!usuario.getSenha().equals(senha)) {
             throw new BusinessException("Usuário ou senha inválidos.");
         }
 
-        if (!usuario.get().isAtivo()) {
-            log.warn("Usuário inativo: {}", email);
+        if (!usuario.isAtivo()) {
             throw new BusinessException("Usuário inativo.");
         }
 
+        return usuario;
+    }
 
-        log.info("Login válido para usuário: {}", email);
-        return usuario.orElse(null);
+    // Método auxiliar para salvar na sessão explicitamente
+    public void registrarLoginNaSessao(Usuario usuario) {
+        this.emailLogado = usuario.getEmail();
+        log.info("Sessão vinculada ao email: {}", this.emailLogado);
+    }
+
+    public void logout() {
+        this.emailLogado = null;
     }
 }
-
