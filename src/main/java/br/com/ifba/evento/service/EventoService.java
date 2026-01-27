@@ -197,7 +197,10 @@ public class EventoService implements EventoIService {
 
         eventoRepository.save(evento);
 
-        parceiroService.save(parceiro);
+        // Só tenta salvar/atualizar o parceiro se ele não for nulo.
+        if (parceiro != null) {
+            parceiroService.save(parceiro);
+        }
 
         return evento;
     }
