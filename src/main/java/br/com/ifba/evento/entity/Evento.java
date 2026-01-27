@@ -32,7 +32,7 @@ public class Evento extends ItemTuristico {
     String categoria;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "parceiro_id", nullable = false)
+    @JoinColumn(name = "parceiro_id")
     private Parceiro parceiro;  // Atributo referenciado no mappedBy
 
     @Override
