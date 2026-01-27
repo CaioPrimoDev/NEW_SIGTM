@@ -1,6 +1,7 @@
 package br.com.ifba.evento.dto;
 
 import br.com.ifba.endereco.dto.EnderecoCadastroDTO;
+import br.com.ifba.pessoa.other_users.parceiro.entity.Parceiro;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,9 +27,11 @@ public class EventoDTO {
 
     // Campos de Evento
     @NotNull(message = "A hora do evento é obrigatória")
+    @FutureOrPresent(message = "A data/hora do evento deve ser no futuro ou presente")
     private LocalDateTime hora;
 
     @NotNull(message = "A data do evento é obrigatória")
+    @FutureOrPresent(message = "A data do evento deve ser no futuro ou presente")
     private LocalDate data;
 
     @NotBlank(message = "O público alvo é obrigatório")
@@ -40,9 +43,9 @@ public class EventoDTO {
     @NotBlank(message = "A categoria é obrigatória")
     private String categoria;
 
-    @NotNull(message = "O endereço é obrigatório")
-    private Long enderecoId;
+    // Endereço Aninhado
+    @NotNull(message = "O endereço do evento é obrigatório")
+    @Valid // <--- Validação em cascata
+    private EnderecoCadastroDTO endereco;
 
-    @NotNull(message = "O parceiro é obrigatório")
-    private Long parceiroId;
 }

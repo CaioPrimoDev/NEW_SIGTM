@@ -88,7 +88,7 @@ public class EventoController {
 
         // 4. Salvar
         Evento evento = mapper.map(dto, Evento.class);
-        Endereco endereco = mapper.map(dto.getEnderecoId(), Endereco.class);
+        Endereco endereco = mapper.map(dto.getEndereco(), Endereco.class);
 
         Evento saved = service.adicionarEvento(evento, parceiroLogado, endereco);
 
@@ -103,7 +103,7 @@ public class EventoController {
 
         Evento evento = mapper.map(dto, Evento.class);
         evento.setId(id);
-        Endereco endereco = mapper.map(dto.getEnderecoId(), Endereco.class);
+        Endereco endereco = mapper.map(dto.getEndereco(), Endereco.class);
         evento.setEndereco(endereco);
 
         Usuario usuario = usuarioSession.getUsuarioLogado();
