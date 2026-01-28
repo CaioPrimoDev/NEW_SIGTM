@@ -25,5 +25,5 @@ public class EnderecoCadastroDTO {
     private String rua;
 
     @NotBlank(message = "O número é obrigatório")
-    private String numero; // String pois pode ser "100A", "S/N"
+    private String numero;
 }

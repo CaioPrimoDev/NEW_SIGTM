@@ -9,7 +9,6 @@ import br.com.ifba.pontoturistico.dto.PontoTuristicoResponseDTO;
 import br.com.ifba.pontoturistico.entity.PontoTuristico;
 import br.com.ifba.pontoturistico.service.PontoTuristicoIService;
 import br.com.ifba.sessao.entity.UsuarioSession;
-import br.com.ifba.usuario.entity.Usuario;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,7 +32,7 @@ public class PontoTuristicoController {
     public ResponseEntity<?> save(@Valid @RequestBody PontoTuristicoDTO dto) {
         try {
             // =============================
-            // 1. Montar a entidade manualmente
+            // 1. Montar a entidade manualmente (mantido conforme original)
             // =============================
 
             PontoTuristico entity = new PontoTuristico();
@@ -49,27 +48,30 @@ public class PontoTuristicoController {
 
             EnderecoCadastroDTO e = dto.getEndereco();
 
-            Endereco endereco = new Endereco();
-            endereco.setEstado(e.getEstado());
-            endereco.setCidade(e.getCidade());
-            endereco.setBairro(e.getBairro());
-            endereco.setRua(e.getRua());
-            endereco.setNumero(e.getNumero());
-
-            // Associar o endereço
-            entity.setEndereco(endereco);
+            if (e != null) {
+                Endereco endereco = new Endereco();
+                endereco.setEstado(e.getEstado());
+                endereco.setCidade(e.getCidade());
+                endereco.setBairro(e.getBairro());
+                endereco.setRua(e.getRua());
+                endereco.setNumero(e.getNumero());
+                // Associar o endereço
+                entity.setEndereco(endereco);
+            }
 
             // =============================
-            // 3. Chamar o service corretamente
+            // 3. Vincular Gestor se logado
+            // =============================
+            if (usuarioSession.isLogado() && usuarioSession.getUsuarioLogado().getPessoa() instanceof Gestor) {
+                entity.setGestor((Gestor) usuarioSession.getUsuarioLogado().getPessoa());
+            }
+
+            // =============================
+            // 4. Chamar o service e Retornar
             // =============================
 
             PontoTuristico salvo = service.save(entity);
-
-            // =============================
-            // 4. Retornar 201 Created
-            // =============================
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
+            return ResponseEntity.status(HttpStatus.CREATED).body(mapToResponse(salvo));
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -78,19 +80,43 @@ public class PontoTuristicoController {
         }
     }
 
-
     @PutMapping(value = "/update/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PontoTuristicoResponseDTO> atualizar(@PathVariable Long id,
                                                                @RequestBody @Valid PontoTuristicoDTO dto) {
-        PontoTuristico entity = mapper.map(dto, PontoTuristico.class);
-        entity.setId(id);
+        // CORREÇÃO: Busca a entidade existente para não perder a referência do Endereço
+        PontoTuristico entity = service.findById(id);
 
-        // Re-vincula gestor logado se necessário
+        if (entity == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Atualiza campos simples
+        entity.setNome(dto.getNome());
+        entity.setDescricao(dto.getDescricao());
+        entity.setNivelAcessibilidade(dto.getNivelAcessibilidade());
+        entity.setHorarioAbertura(dto.getHorarioAbertura());
+        entity.setHorarioFechamento(dto.getHorarioFechamento());
+
+        // CORREÇÃO: Atualiza os dados do endereço existente em vez de criar um novo (evita TransientObjectException)
+        if (entity.getEndereco() != null && dto.getEndereco() != null) {
+            entity.getEndereco().setRua(dto.getEndereco().getRua());
+            entity.getEndereco().setNumero(dto.getEndereco().getNumero());
+            entity.getEndereco().setBairro(dto.getEndereco().getBairro());
+            entity.getEndereco().setCidade(dto.getEndereco().getCidade());
+            entity.getEndereco().setEstado(dto.getEndereco().getEstado());
+        } else if (dto.getEndereco() != null) {
+            // Se não existia endereço antes, mapeia um novo
+            entity.setEndereco(mapper.map(dto.getEndereco(), Endereco.class));
+        }
+
+        // Re-vincula gestor logado se necessário (regra de negócio de segurança)
         if (usuarioSession.isLogado() && usuarioSession.getUsuarioLogado().getPessoa() instanceof Gestor) {
             entity.setGestor((Gestor) usuarioSession.getUsuarioLogado().getPessoa());
         }
 
         service.update(entity);
+
+        // Retorna o objeto atualizado convertido para DTO
         return ResponseEntity.ok(mapToResponse(service.findById(id)));
     }
 
@@ -124,8 +150,10 @@ public class PontoTuristicoController {
         );
     }
 
+    // Método auxiliar para converter Entity -> ResponseDTO
     private PontoTuristicoResponseDTO mapToResponse(PontoTuristico entity) {
         PontoTuristicoResponseDTO dto = mapper.map(entity, PontoTuristicoResponseDTO.class);
+        // Garante que o nome do gestor seja preenchido se existir
         if (entity.getGestor() != null) {
             dto.setNomeGestorResponsavel(entity.getGestor().getNome());
         }

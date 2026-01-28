@@ -1,7 +1,6 @@
 package br.com.ifba.evento.dto;
 
 import br.com.ifba.endereco.dto.EnderecoCadastroDTO;
-import br.com.ifba.pessoa.other_users.parceiro.entity.Parceiro;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,10 +21,10 @@ public class EventoDTO {
     @NotBlank(message = "A descrição é obrigatória")
     private String descricao;
 
-    @Min(1) @Max(5)
+    @Min(value = 1, message = "O nível de acessibilidade deve ser no mínimo 1")
+    @Max(value = 5, message = "O nível de acessibilidade deve ser no máximo 5")
     private int nivelAcessibilidade;
 
-    // Campos de Evento
     @NotNull(message = "A hora do evento é obrigatória")
     @FutureOrPresent(message = "A data/hora do evento deve ser no futuro ou presente")
     private LocalDateTime hora;
@@ -43,9 +42,11 @@ public class EventoDTO {
     @NotBlank(message = "A categoria é obrigatória")
     private String categoria;
 
-    // Endereço Aninhado
+    // A validação @Valid aqui obriga o Spring a validar também os campos dentro de EnderecoCadastroDTO
     @NotNull(message = "O endereço do evento é obrigatório")
-    @Valid // <--- Validação em cascata
+    @Valid
     private EnderecoCadastroDTO endereco;
 
+    // O parceiro pode ser opcional dependendo da lógica (geralmente pego da sessão ou enviado por Admin)
+    private Long parceiroId;
 }

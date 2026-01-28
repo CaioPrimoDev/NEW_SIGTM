@@ -12,7 +12,6 @@ import jakarta.validation.constraints.*;
 @AllArgsConstructor
 public class PontoTuristicoDTO {
 
-    // --- Dados do ItemTuristico ---
     @NotBlank(message = "O nome é obrigatório")
     private String nome;
 
@@ -20,12 +19,9 @@ public class PontoTuristicoDTO {
     @Size(max = 1000, message = "A descrição deve ter no máximo 1000 caracteres")
     private String descricao;
 
-    // int primitivo não aceita null, então @NotNull é redundante, mas @Min/@Max são essenciais
     @Min(value = 1, message = "O nível de acessibilidade deve ser no mínimo 1")
     @Max(value = 5, message = "O nível de acessibilidade deve ser no máximo 5")
     private int nivelAcessibilidade;
-
-    // --- Dados específicos ---
 
     @NotBlank(message = "Horário de abertura é obrigatório")
     @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d$", message = "Formato de hora inválido. Use HH:mm")
@@ -35,8 +31,7 @@ public class PontoTuristicoDTO {
     @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d$", message = "Formato de hora inválido. Use HH:mm")
     private String horarioFechamento;
 
-    // --- Endereço Aninhado ---
     @NotNull(message = "O endereço é obrigatório")
-    @Valid // <--- ESSENCIAL: Diz ao Spring para entrar no objeto e validar os campos dele
+    @Valid
     private EnderecoCadastroDTO endereco;
 }

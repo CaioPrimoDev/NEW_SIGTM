@@ -22,18 +22,14 @@ public class PontoTuristico extends ItemTuristico {
     private String horarioFechamento;
 
     @ManyToOne
-    // ALTERAÇÃO 1: Mude nullable para true para permitir nulos no banco
     @JoinColumn(name = "gestor_id")
     private Gestor gestor;
 
-    // ALTERAÇÃO 2: Remova 'Gestor gestor' dos parâmetros deste construtor
     public PontoTuristico(String nome, String descricao, Endereco endereco,
                           int nivelAcessibilidade, String horarioAbertura, String horarioFechamento) {
         super(nome, descricao, endereco, nivelAcessibilidade);
-
         this.horarioFechamento = horarioFechamento;
         this.horarioAbertura = horarioAbertura;
-        this.gestor = gestor;
     }
 
     @Override
