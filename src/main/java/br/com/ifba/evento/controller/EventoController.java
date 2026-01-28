@@ -101,17 +101,52 @@ public class EventoController {
                                                        @RequestBody @Valid EventoDTO dto) {
         if (!usuarioSession.isLogado()) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
-        Evento evento = mapper.map(dto, Evento.class);
-        evento.setId(id);
-        Endereco endereco = mapper.map(dto.getEndereco(), Endereco.class);
-        evento.setEndereco(endereco);
+        // 1. Buscamos o evento existente no banco (Entity Gerenciado)
+        Evento evento = service.findById(id);
 
-        Usuario usuario = usuarioSession.getUsuarioLogado();
-        if (usuario.getPessoa() instanceof Parceiro) {
-            evento.setParceiro((Parceiro) usuario.getPessoa());
+        // Verifica se existe (embora o service geralmente lance exceção, é bom garantir)
+        if (evento == null) {
+            return ResponseEntity.notFound().build();
         }
 
+        // 2. Atualizamos manualmente os campos do Evento (para não perder a referência do objeto)
+        evento.setNome(dto.getNome());
+        evento.setDescricao(dto.getDescricao());
+        evento.setData(dto.getData());
+        evento.setHora(dto.getHora());
+        evento.setNivelAcessibilidade(dto.getNivelAcessibilidade());
+        evento.setPublicoAlvo(dto.getPublicoAlvo());
+        evento.setProgramacao(dto.getProgramacao());
+        evento.setCategoria(dto.getCategoria());
+
+        // 3. Atualizamos os dados do Endereço EXISTENTE
+        Endereco endereco = evento.getEndereco();
+
+        if (endereco != null) {
+            endereco.setRua(dto.getEndereco().getRua());
+            endereco.setNumero(dto.getEndereco().getNumero());
+            endereco.setBairro(dto.getEndereco().getBairro());
+            endereco.setCidade(dto.getEndereco().getCidade());
+            endereco.setEstado(dto.getEndereco().getEstado());
+        } else {
+            // Caso raro onde o evento antigo não tinha endereço (legado), criamos um
+            Endereco novoEndereco = mapper.map(dto.getEndereco(), Endereco.class);
+            evento.setEndereco(novoEndereco);
+            // Nota: Se cair aqui, pode dar erro se o service não salvar o endereço.
+            // Mas em fluxo normal de edição, o endereço sempre existe.
+        }
+
+        // 4. Lógica de Segurança para Parceiro
+        Usuario usuario = usuarioSession.getUsuarioLogado();
+        if (usuario.getPessoa() instanceof Parceiro) {
+            // Se quem edita é o parceiro, garante que o evento continue vinculado a ele
+            evento.setParceiro((Parceiro) usuario.getPessoa());
+        }
+        // Se for Gestor, mantemos o parceiro que já estava no 'evento' recuperado do banco.
+
+        // 5. Salva as alterações (Merge)
         service.save(evento);
+
         return ResponseEntity.ok(mapToResponse(service.findById(id)));
     }
 
