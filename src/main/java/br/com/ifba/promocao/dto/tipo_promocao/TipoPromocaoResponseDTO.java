@@ -1,6 +1,5 @@
 package br.com.ifba.promocao.dto.tipo_promocao;
 
-import br.com.ifba.promocao.dto.publico_promo.PublicoPromocaoResponseDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,5 +15,4 @@ public class TipoPromocaoResponseDTO {
 
     // Dados aninhados
     private String nomeUsuarioCadastro;      // Apenas o nome do criador
-    private PublicoPromocaoResponseDTO publicoAlvo;
 }
