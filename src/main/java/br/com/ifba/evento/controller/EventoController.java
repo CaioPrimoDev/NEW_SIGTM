@@ -195,4 +195,13 @@ public class EventoController {
         }
         return dto;
     }
+
+    @GetMapping(value = "/futuros")
+    public ResponseEntity<List<EventoResponseDTO>> listarFuturos() {
+        return ResponseEntity.ok(
+                service.findFuture().stream() // Chama o serviço novo
+                        .map(this::mapToResponse)
+                        .collect(Collectors.toList())
+        );
+    }
 }
