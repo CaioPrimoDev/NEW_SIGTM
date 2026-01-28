@@ -26,4 +26,6 @@ public class EventoResponseDTO {
     // Dados Aninhados
     private EnderecoResponseDTO endereco;
     private String nomeParceiroResponsavel; // Apenas o nome da empresa/parceiro
+
+    private Long parceiroId;
 }
