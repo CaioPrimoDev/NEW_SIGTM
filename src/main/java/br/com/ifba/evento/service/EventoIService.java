@@ -27,4 +27,6 @@ public interface EventoIService {
     void validarEvento(Evento evento);
 
     Evento adicionarEvento(Evento evento, Parceiro parceiro, Endereco endereco);
+
+    List<Evento> findFuture();
 }

@@ -15,6 +15,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -273,5 +274,14 @@ public class EventoService implements EventoIService {
 
     }
 
-
+    @Override
+    public List<Evento> findFuture() {
+        try {
+            // Passa a data/hora de "AGORA". O banco filtrará tudo que for maior que agora.
+            return eventoRepository.findByHoraAfterOrderByHoraAsc(LocalDateTime.now());
+        } catch (RuntimeException e) {
+            log.error("Erro ao buscar eventos futuros. Stacktrace: {}", e);
+            throw new BusinessException("Erro ao buscar eventos futuros.");
+        }
+    }
 }
