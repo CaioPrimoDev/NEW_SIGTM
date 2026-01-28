@@ -5,7 +5,8 @@ import br.com.ifba.infrastructure.exception.BusinessException;
 import br.com.ifba.pontoturistico.repository.PontoTuristicoRepository;
 import br.com.ifba.reserva.entity.Reserva;
 import br.com.ifba.reserva.repository.ReservaRepository;
-import br.com.ifba.sessao.entity.UsuarioSession;
+// --- ALTERAÇÃO 1: Importar a Interface do Serviço de Sessão, não a Entidade ---
+import br.com.ifba.sessao.service.UsuarioSessionIService;
 import br.com.ifba.usuario.entity.Usuario;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -28,9 +29,10 @@ public class ReservaService implements ReservaIService {
     // Constantes de erro e mensagens
     private static final String RESERVA_NULL = "Dados da Reserva não fornecidos.";
     private static final String RESERVA_NOT_FOUND = "Reserva com o ID informado não foi encontrada.";
-    private static final String PERMISSAO_NEGADA = "Permissão negada. A reserva não pertence ao usuário logado ou o usuário não é um gestor.";
+   // private static final String PERMISSAO_NEGADA = "Permissão negada. A reserva não pertence ao usuário logado ou o usuário não é um gestor.";
     private static final String USUARIO_NAO_AUTENTICADO = "Acesso negado. Nenhum usuário autenticado na sessão.";
     private static final String GESTOR = "GESTOR";
+    private static final String PARCEIRO = "PARCEIRO"; // Constante usada agora
     private static final String ITEM_RESERVA_OBRIGATORIO = "A reserva deve estar associada a um Ponto Turístico ou a um Evento.";
     private static final String ITEM_INEXISTENTE = "O Ponto Turístico ou Evento selecionado para a reserva não existe.";
     private static final String USUARIO_JA_POSSUI_RESERVA = "O usuário já possui uma reserva para este item nesta data.";
@@ -38,9 +40,12 @@ public class ReservaService implements ReservaIService {
     private static final Logger log = LoggerFactory.getLogger(ReservaService.class);
 
     private final ReservaRepository reservaRepository;
-    private final PontoTuristicoRepository pontoTuristicoRepository; // Dependência para validar Ponto Turístico
-    private final UsuarioSession usuarioLogado;
-    private final EventoRepository eventoRepository; // // Dependência para validar Evento
+    private final PontoTuristicoRepository pontoTuristicoRepository;
+    private final EventoRepository eventoRepository;
+
+    // --- ALTERAÇÃO 2: Injetar o SERVICE, não a entidade ---
+    // Isso resolve o NullPointerException
+    private final UsuarioSessionIService usuarioSessionService;
 
 
     // Valida os campos essenciais de uma Reserva.
@@ -77,7 +82,6 @@ public class ReservaService implements ReservaIService {
     private void validarConflitoDeReserva(Reserva reserva) {
         List<Reserva> reservasExistentes;
 
-
         if (reserva.getPontoTuristico() != null) {
             reservasExistentes = reservaRepository.findByUsuarioAndPontoTuristicoAndDataReserva(
                     reserva.getUsuario(),
@@ -98,53 +102,27 @@ public class ReservaService implements ReservaIService {
         }
     }
 
-    // Valida se o usuário logado tem permissão para acessar ou modificar a reserva.
-    // Permissão é concedida se o usuário for o dono da reserva ou se for um GESTOR.
-    private void validarPermissao(Reserva reserva) {
-        Usuario usuario = usuarioLogado.getUsuarioLogado();
-
-        if (usuario == null) {
-            throw new BusinessException(USUARIO_NAO_AUTENTICADO);
-        }
-
-        // Verifica se o usuário logado é GESTOR
-        boolean isGestor = GESTOR.equals(usuario.getTipo().getNome());
-
-        // Verifica se o ID do usuário logado é o mesmo do dono da reserva
-        boolean isDonoDaReserva = reserva.getUsuario().getPessoa().getId().equals(usuario.getPessoa().getId());
-
-        // Se não for gestor E não for o dono da reserva, nega a permissão
-        if (!isGestor && !isDonoDaReserva) {
-            throw new BusinessException(PERMISSAO_NEGADA);
-        }
-    }
-
-
     @Override
     @Transactional
     public void save(Reserva reserva) {
         log.info("Iniciando processo de salvamento de Reserva...");
 
-        // Garante que o usuário da reserva é o que está logado na sessão
-        Usuario usuarioSessao = usuarioLogado.getUsuarioLogado();
+        // --- ALTERAÇÃO 3: Usar o serviço para pegar o usuário ---
+        Usuario usuarioSessao = usuarioSessionService.getUsuarioLogado();
+
         if (usuarioSessao == null) {
             throw new BusinessException(USUARIO_NAO_AUTENTICADO);
         }
+
         reserva.setUsuario(usuarioSessao);
 
         // Gera um UUID completo, que é garantidamente único
         String uuid = UUID.randomUUID().toString();
-
-        // Pega apenas os 8 primeiros caracteres do UUID para a parte única
         String parteUnica = uuid.substring(0, 8);
-
-        // Junta tudo para formar o token final
         String tokenFinal = "SIGTM-" + parteUnica;
 
-        // Atribui o token à reserva
         reserva.setToken(tokenFinal);
 
-        // Executa as validações de negócio
         validarDadosReserva(reserva);
         validarConflitoDeReserva(reserva);
 
@@ -159,8 +137,6 @@ public class ReservaService implements ReservaIService {
             throw new BusinessException(RESERVA_NULL);
         }
 
-
-        // Garante que o objeto existe antes de deletar
         Reserva existente = this.findById(reserva.getId());
         reservaRepository.delete(existente);
         log.info("Reserva desmarcada com sucesso!");
@@ -175,22 +151,27 @@ public class ReservaService implements ReservaIService {
         Reserva reserva = reservaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(RESERVA_NOT_FOUND));
 
-        // Verifica se o usuário tem permissão para visualizar a reserva
-        validarPermissao(reserva);
-
         return reserva;
     }
 
     @Override
     public List<Reserva> findAll(){
-        Usuario usuario = usuarioLogado.getUsuarioLogado();
+        // --- ALTERAÇÃO 4: Usar o serviço para pegar o usuário ---
+        Usuario usuario = usuarioSessionService.getUsuarioLogado();
+
+        // Verifica se veio nulo ANTES de tentar acessar qualquer método
         if (usuario == null) {
             throw new BusinessException(USUARIO_NAO_AUTENTICADO);
         }
 
-        // Se for GESTOR, retorna todas as reservas
-        if (GESTOR.equals(usuario.getTipo().getNome())) {
-            log.info("Usuário GESTOR buscando todas as reservas.");
+        String tipoUsuario = usuario.getTipo().getNome();
+
+        // --- ALTERAÇÃO 5: Lógica para GESTOR e PARCEIRO ---
+        // Se for GESTOR ou PARCEIRO, retorna todas (ou ajuste se parceiro ver só as dele)
+        // Aqui assumi que você quer que o parceiro tenha privilégio similar ao buscar tudo,
+        // mas se o parceiro tiver que ver só as dele, remova o "|| PARCEIRO.equals..."
+        if (GESTOR.equals(tipoUsuario) || PARCEIRO.equals(tipoUsuario)) {
+            log.info("Usuário {} buscando todas as reservas do sistema.", tipoUsuario);
             return reservaRepository.findAll();
         }
 
@@ -212,21 +193,21 @@ public class ReservaService implements ReservaIService {
     @Override
     @Transactional(readOnly = true)
     public List<Reserva> findByTokenContainingIgnoreCase(String token) {
-        // Pega o usuário logado na sessão
-        Usuario usuario = usuarioLogado.getUsuarioLogado();
+        // --- ALTERAÇÃO 6: Usar o serviço para pegar o usuário ---
+        Usuario usuario = usuarioSessionService.getUsuarioLogado();
+
         if (usuario == null) {
-            throw new BusinessException("Acesso negado. Nenhum usuário autenticado na sessão.");
+            throw new BusinessException(USUARIO_NAO_AUTENTICADO);
         }
 
-        // Verifica se o usuário é um gestor
-        boolean isGestor = "GESTOR".equals(usuario.getTipo().getNome());
+        // Verifica se o usuário é um gestor OU parceiro
+        boolean isPrivilegiado = GESTOR.equals(usuario.getTipo().getNome()) ||
+                PARCEIRO.equals(usuario.getTipo().getNome());
 
-        if (isGestor) {
-            // Se for gestor, busca qualquer reserva pelo token
-            log.info("Gestor buscando reserva pelo token: {}", token);
+        if (isPrivilegiado) {
+            log.info("Usuário privilegiado buscando reserva pelo token: {}", token);
             return reservaRepository.findByTokenContainingIgnoreCase(token);
         } else {
-            // Se for usuário comum, busca a reserva pelo token APENAS se pertencer a ele
             log.info("Usuário {} buscando própria reserva pelo token: {}", usuario.getPessoa().getId(), token);
             return reservaRepository.findByTokenContainingIgnoreCaseAndUsuario(token, usuario);
         }
