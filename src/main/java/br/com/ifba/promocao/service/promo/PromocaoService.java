@@ -5,7 +5,6 @@ import br.com.ifba.promocao.entity.Promocao;
 import br.com.ifba.promocao.entity.TipoPromocao;
 import br.com.ifba.promocao.repository.PromocaoRepository;
 import br.com.ifba.promocao.repository.TipoPromocaoRepository;
-import br.com.ifba.sessao.entity.UsuarioSession;
 import br.com.ifba.usuario.entity.Usuario;
 import br.com.ifba.util.StringUtil;
 import jakarta.persistence.EntityNotFoundException;
@@ -22,91 +21,79 @@ import java.util.List;
 public class PromocaoService implements PromocaoIService {
 
     private final PromocaoRepository promocaoRepository;
-
     private final TipoPromocaoRepository tipoPromocaoRepository;
 
-    private final UsuarioSession usuarioSession;
     private static final Logger log = LoggerFactory.getLogger(PromocaoService.class);
 
     @Override
     public Promocao save(Promocao promocao) {
-        log.info("Salvando {}", promocao.getTitulo());
+        log.info("Salvando promoção: {}", promocao.getTitulo());
 
-        // obtem o usuário logado
-        Usuario usuarioLogado = usuarioSession.getUsuarioLogado();
-        if (usuarioLogado == null) {
-            throw new BusinessException("Usuário não autenticado. Não é possível salvar a promoção.");
+        if (promocao == null) {
+            throw new BusinessException("Dados da promoção não informados.");
         }
 
-        //associa promoção a usuário
-        promocao.setUsuarioCriador(usuarioLogado);
+        Usuario usuarioPadrao = new Usuario();
+        usuarioPadrao.setId(1L);
 
-        //valida e salve a entidade
+        promocao.setUsuarioCriador(usuarioPadrao);
+
         validatePromocao(promocao);
         return promocaoRepository.save(promocao);
     }
+
     @Override
     public Promocao update(Promocao promocao) {
-        log.info("Atualizando ID {}: {}", promocao.getId(), promocao.getTitulo());
+        log.info("Atualizando promoção ID {}", promocao.getId());
 
-        //Obtem a promoção existente do banco de dados
-        Promocao promocaoExistente = findById(promocao.getId());
+        Promocao existente = findById(promocao.getId());
 
-        //Define o usuário criador da nova promoção para o usuário criador da promoção existente
-        promocao.setUsuarioCriador(promocaoExistente.getUsuarioCriador());
+        // mantém o usuário criador original
+        promocao.setUsuarioCriador(existente.getUsuarioCriador());
 
-        // valida e salve
         validatePromocao(promocao);
         return promocaoRepository.save(promocao);
     }
+
     @Override
     public void delete(Promocao promocao) {
-        log.info("Removendo promoção ID {}: {}", promocao.getId(), promocao.getTitulo());
         promocaoRepository.delete(promocao);
     }
 
     @Override
     public List<Promocao> findAll() {
-        log.info("Listando todas as promoções");
         return promocaoRepository.findAll();
     }
 
     @Override
     public Promocao findById(Long id) {
-        log.info("Buscando promoção por ID: {}", id);
         return promocaoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Promoção não encontrada"));
+                .orElseThrow(() -> new EntityNotFoundException("Promoção não encontrada."));
     }
 
     public List<Promocao> filtrarPromocoes(String termo, String tipo) {
-        if(tipo.equals("TODOS")) {
-            if(termo == null || termo.isEmpty()) {
-                return promocaoRepository.findAll();
-            }
-            return promocaoRepository.findByTituloContainingIgnoreCase(termo);
-        } else {
-            // Primeiro verifica se existe algum tipo com esse nome
-            List<TipoPromocao> tipos = tipoPromocaoRepository.findByTitulo(tipo);
-
-            if(tipos == null || tipos.isEmpty()) {
-                throw new EntityNotFoundException("Tipo não encontrado");
-            }
-
-            // Pega o primeiro tipo encontrado (assumindo que nomes são únicos)
-            TipoPromocao tipoPromocao = tipos.getFirst();
-
-            if(termo == null || termo.isEmpty()) {
-                return promocaoRepository.findByTipo(tipoPromocao);
-            }
-            return promocaoRepository.findByTipoAndTituloContainingIgnoreCase(tipoPromocao, termo);
+        if ("TODOS".equalsIgnoreCase(tipo)) {
+            return (termo == null || termo.isBlank())
+                    ? promocaoRepository.findAll()
+                    : promocaoRepository.findByTituloContainingIgnoreCase(termo);
         }
+
+        List<TipoPromocao> tipos = tipoPromocaoRepository.findByTitulo(tipo);
+        if (tipos.isEmpty()) {
+            throw new EntityNotFoundException("Tipo de promoção não encontrado.");
+        }
+
+        TipoPromocao tipoPromocao = tipos.getFirst();
+
+        return (termo == null || termo.isBlank())
+                ? promocaoRepository.findByTipo(tipoPromocao)
+                : promocaoRepository.findByTipoAndTituloContainingIgnoreCase(tipoPromocao, termo);
     }
 
-    public void validatePromocao(Promocao promocao) {
-        if (promocao == null) {
-            throw new IllegalArgumentException("Preencha todos os campos");
-        }
-
+    // =============================
+    // VALIDAÇÕES
+    // =============================
+    private void validatePromocao(Promocao promocao) {
         validateTitulo(promocao.getTitulo());
         validateDescricao(promocao.getDescricao());
         validateDatas(promocao.getDataInicio(), promocao.getDataTermino());
@@ -115,35 +102,35 @@ public class PromocaoService implements PromocaoIService {
 
     private void validateTitulo(String titulo) {
         if (StringUtil.isNullOrEmpty(titulo)) {
-            throw new BusinessException("Título não pode ser vazio");
+            throw new BusinessException("Título é obrigatório.");
         }
-        if (!StringUtil.hasValidLength(titulo, 3, 20)) {
-            throw new BusinessException("Título deve ter entre 3 e 20 caracteres");
+        if (!StringUtil.hasValidLength(titulo, 3, 50)) {
+            throw new BusinessException("Título deve ter entre 3 e 50 caracteres.");
         }
     }
 
     private void validateDescricao(String descricao) {
         if (StringUtil.isNullOrEmpty(descricao)) {
-            throw new BusinessException("Descrição não pode ser vazia");
+            throw new BusinessException("Descrição é obrigatória.");
         }
-        if (!StringUtil.hasValidLength(descricao, 10, 100)) {
-            throw new BusinessException("Descrição deve ter entre 10 e 100 caracteres");
+        if (!StringUtil.hasValidLength(descricao, 10, 200)) {
+            throw new BusinessException("Descrição deve ter entre 10 e 200 caracteres.");
         }
     }
 
-    private void validateDatas(Date dataInicio, Date dataTermino) {
-        if (dataInicio == null || dataTermino == null) {
-            throw new BusinessException("Datas de início e término são obrigatórias");
+    private void validateDatas(Date inicio, Date termino) {
+        if (inicio == null || termino == null) {
+            throw new BusinessException("Datas são obrigatórias.");
         }
-
-        if (dataTermino.before(dataInicio)) {
-            throw new BusinessException("Data de término deve ser após a data de início");
+        if (termino.before(inicio)) {
+            throw new BusinessException("Data de término deve ser posterior à data de início.");
         }
     }
 
     private void validateRegras(String regras) {
-        if (!StringUtil.isNullOrEmpty(regras) && !StringUtil.hasValidLength(regras, 0, 100)) {
-            throw new BusinessException("Regras não podem exceder 100 caracteres");
+        if (!StringUtil.isNullOrEmpty(regras) &&
+            !StringUtil.hasValidLength(regras, 0, 200)) {
+            throw new BusinessException("Regras não podem exceder 200 caracteres.");
         }
     }
 }
