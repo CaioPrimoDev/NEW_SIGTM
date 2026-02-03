@@ -23,4 +23,10 @@ public interface AvaliacaoRepository extends JpaRepository<Avaliacao, Long> {
 
     // Verifica se o usuário já avaliou o ponto turístico
     boolean existsByUsuarioIdAndPontoTuristicoId(Long usuarioId, Long pontoId);
+
+    // Todas as avaliações do evento
+    List<Avaliacao> findByEventoIdOrderByEstrelasDesc(Long eventoId);
+
+    // Verifica se o usuário já avaliou o evento
+    boolean existsByUsuarioIdAndEventoId(Long usuarioId, Long eventoId);
 }

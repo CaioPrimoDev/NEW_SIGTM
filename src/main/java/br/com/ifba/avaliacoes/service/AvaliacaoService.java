@@ -2,6 +2,8 @@ package br.com.ifba.avaliacoes.service;
 
 import br.com.ifba.avaliacoes.entity.Avaliacao;
 import br.com.ifba.avaliacoes.repository.AvaliacaoRepository;
+import br.com.ifba.evento.entity.Evento; // [NOVO]
+import br.com.ifba.evento.repository.EventoRepository; // [NOVO]
 import br.com.ifba.infrastructure.exception.BusinessException;
 import br.com.ifba.pontoturistico.entity.PontoTuristico;
 import br.com.ifba.pontoturistico.repository.PontoTuristicoRepository;
@@ -23,11 +25,12 @@ public class AvaliacaoService implements AvaliacaoIService {
 
     private final AvaliacaoRepository repo;
     private final PontoTuristicoRepository pontoRepo;
+    private final EventoRepository eventoRepo; // [NOVO] Dependência necessária
 
     private static final int MELHORES_LIMITE = 4;
     private static final int PIORES_LIMITE = 2;
 
-    // =================== BUSCAS ===================
+    // =================== BUSCAS PONTO TURÍSTICO ===================
     @Override
     public List<Avaliacao> findAllByPonto(Long pontoId) {
         validarIdPonto(pontoId);
@@ -73,6 +76,23 @@ public class AvaliacaoService implements AvaliacaoIService {
         }
     }
 
+    // =================== BUSCAS EVENTO [NOVO] ===================
+    @Override
+    public List<Avaliacao> findAllByEvento(Long eventoId) {
+        validarIdEvento(eventoId);
+        try {
+            List<Avaliacao> avaliacoes = repo.findByEventoIdOrderByEstrelasDesc(eventoId);
+            if (avaliacoes.isEmpty()) {
+                log.info("Nenhuma avaliação encontrada para o evento ID={}", eventoId);
+            }
+            return avaliacoes;
+        } catch (RuntimeException e) {
+            log.error("Erro ao buscar avaliações para evento ID={}", eventoId, e);
+            throw new BusinessException("Erro ao buscar avaliações para o evento.");
+        }
+    }
+
+    // =================== BUSCAS GERAIS ===================
     @Override
     public List<Avaliacao> findByUsuarioId(Long usuarioId) {
         try {
@@ -92,12 +112,17 @@ public class AvaliacaoService implements AvaliacaoIService {
         return repo.existsByUsuarioIdAndPontoTuristicoId(usuarioId, pontoId);
     }
 
-    // =================== SAVE ===================
+    // =================== SAVE PONTO ===================
     @Override
     @Transactional
     public Avaliacao saveForPonto(Long pontoId, Avaliacao avaliacao) {
         validarIdPonto(pontoId);
         validarAvaliacao(avaliacao);
+
+        // Verifica duplicidade para Ponto
+        if (existsByUsuarioIdAndPontoTuristicoId(avaliacao.getUsuario().getId(), pontoId)) {
+            throw new BusinessException("Você já avaliou este ponto turístico.");
+        }
 
         try {
             PontoTuristico ponto = pontoRepo.findById(pontoId)
@@ -110,6 +135,34 @@ public class AvaliacaoService implements AvaliacaoIService {
             throw new BusinessException("Dados da avaliação inválidos ou duplicados.", e);
         } catch (RuntimeException e) {
             log.error("Erro inesperado ao salvar Avaliação para ponto ID={}", pontoId, e);
+            throw new BusinessException("Erro ao salvar avaliação.");
+        }
+    }
+
+    // =================== SAVE EVENTO [NOVO] ===================
+    @Override
+    @Transactional
+    public Avaliacao saveForEvento(Long eventoId, Avaliacao avaliacao) {
+        validarIdEvento(eventoId);
+        validarAvaliacao(avaliacao);
+
+        // Verifica se usuário já avaliou este evento
+        if (repo.existsByUsuarioIdAndEventoId(avaliacao.getUsuario().getId(), eventoId)) {
+            throw new BusinessException("Você já avaliou este evento.");
+        }
+
+        try {
+            Evento evento = eventoRepo.findById(eventoId)
+                    .orElseThrow(() -> new RegraNegocioException("Evento não encontrado"));
+
+            avaliacao.setEvento(evento);
+
+            return repo.save(avaliacao);
+        } catch (DataIntegrityViolationException e) {
+            log.error("Violação de integridade ao salvar Avaliação para evento ID={}", eventoId, e);
+            throw new BusinessException("Dados da avaliação inválidos ou duplicados.", e);
+        } catch (RuntimeException e) {
+            log.error("Erro inesperado ao salvar Avaliação para evento ID={}", eventoId, e);
             throw new BusinessException("Erro ao salvar avaliação.");
         }
     }
@@ -203,6 +256,14 @@ public class AvaliacaoService implements AvaliacaoIService {
         if (pontoId == null || pontoId <= 0) {
             log.warn("ID de ponto turístico inválido: {}", pontoId);
             throw new BusinessException("ID de ponto turístico inválido.");
+        }
+    }
+
+    // [NOVO] Validação de ID de Evento
+    private void validarIdEvento(Long eventoId) {
+        if (eventoId == null || eventoId <= 0) {
+            log.warn("ID de evento inválido: {}", eventoId);
+            throw new BusinessException("ID de evento inválido.");
         }
     }
 
