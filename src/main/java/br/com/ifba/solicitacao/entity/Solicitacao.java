@@ -25,6 +25,9 @@ public class Solicitacao extends PersistenceEntity {
     private LocalDateTime dataSolicitacao;
     @Column(nullable = false)
     private boolean solicitouParceria = false; // por padrão nenhum usuário fez solicita;cão
+    @Column
+    private String horarioFuncionamento;
+
 
     public Solicitacao() {
         this.dataSolicitacao = LocalDateTime.now();

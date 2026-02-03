@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -52,19 +53,11 @@ public class ParceiroService implements ParceiroIService {
 
     @Override
     public boolean save(Parceiro user) {
-        validarParceiro(user);
-        try {
+       // validarParceiro(user);
+
             parceiroRepository.save(user);
             return true;
-        } catch (DataIntegrityViolationException e) {
-            // Violação de constraints do banco (ex: unique ou not null)
-            log.error("Violação de integridade ao salvar Parceiro: {}", user.getNome(), e);
-            throw new BusinessException("Já existe um Parceiro com esse nome ou dados inválidos.", e);
-        } catch (RuntimeException e) {
-            // Falha inesperada
-            log.error("Erro inesperado ao salvar Parceiro.", e);
-            throw new BusinessException("Erro ao salvar Parceiro.");
-        }
+
     }
 
     @Override
@@ -214,6 +207,8 @@ public class ParceiroService implements ParceiroIService {
         novoParceiro.setTelefone(telefone);
         novoParceiro.setCnpj(dadosSolicitacao.getCnpj());
         novoParceiro.setNomeEmpresa(dadosSolicitacao.getNomeEmpresa());
+        novoParceiro.setDataCadastro(LocalDateTime.now());
+        novoParceiro.setHorarioFuncionamento(dadosSolicitacao.getHorarioFuncionamento());
         // Se quiser tentar forçar o mesmo ID, seria complexo.
         // Deixe o banco gerar um novo ID para evitar conflitos.
 
