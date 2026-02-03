@@ -26,6 +26,9 @@ public class AvaliacaoController {
     private final UsuarioSession usuarioSession;
     private final ObjectMapperUtill mapper;
 
+    // ==================================================================================
+    // 1. SALVAR AVALIAÇÃO DE PONTO TURÍSTICO
+    // ==================================================================================
     @PostMapping(
             value = "/pontos-turisticos/{pontoId}/avaliacoes/save",
             consumes = MediaType.APPLICATION_JSON_VALUE
@@ -56,6 +59,9 @@ public class AvaliacaoController {
                 .body(mapToResponse(saved));
     }
 
+    // ==================================================================================
+    // 2. SALVAR AVALIAÇÃO DE EVENTO
+    // ==================================================================================
     @PostMapping(
             value = "/eventos/{eventoId}/avaliacoes/save",
             consumes = MediaType.APPLICATION_JSON_VALUE
@@ -79,7 +85,6 @@ public class AvaliacaoController {
             entity.setNomeAutor(usuarioLogado.getPessoa().getNome());
         }
 
-        // Nota: Certifique-se de ter criado o método 'saveForEvento' no seu Service
         Avaliacao saved = service.saveForEvento(eventoId, entity);
 
         return ResponseEntity
@@ -87,6 +92,39 @@ public class AvaliacaoController {
                 .body(mapToResponse(saved));
     }
 
+    // ==================================================================================
+    // 3. LISTAR AVALIAÇÕES DE UM PONTO ESPECÍFICO (PÚBLICO)
+    // ==================================================================================
+    @GetMapping("/pontos-turisticos/{pontoId}/avaliacoes")
+    public ResponseEntity<List<AvaliacaoResponseDTO>> listarPorPonto(@PathVariable Long pontoId) {
+        // Busca todas as avaliações daquele ponto
+        List<Avaliacao> lista = service.findAllByPonto(pontoId);
+
+        return ResponseEntity.ok(
+                lista.stream()
+                        .map(this::mapToResponse)
+                        .collect(Collectors.toList())
+        );
+    }
+
+    // ==================================================================================
+    // 4. LISTAR AVALIAÇÕES DE UM EVENTO ESPECÍFICO (PÚBLICO) - [NOVO]
+    // ==================================================================================
+    @GetMapping("/eventos/{eventoId}/avaliacoes")
+    public ResponseEntity<List<AvaliacaoResponseDTO>> listarPorEvento(@PathVariable Long eventoId) {
+        // Busca todas as avaliações daquele evento
+        List<Avaliacao> lista = service.findAllByEvento(eventoId);
+
+        return ResponseEntity.ok(
+                lista.stream()
+                        .map(this::mapToResponse)
+                        .collect(Collectors.toList())
+        );
+    }
+
+    // ==================================================================================
+    // 5. LISTAR MINHAS AVALIAÇÕES (USUÁRIO LOGADO)
+    // ==================================================================================
     @GetMapping("/avaliacoes/find/me")
     public ResponseEntity<List<AvaliacaoResponseDTO>> minhasAvaliacoes() {
 
@@ -104,10 +142,13 @@ public class AvaliacaoController {
         );
     }
 
+    // ==================================================================================
+    // MÉTODOS AUXILIARES
+    // ==================================================================================
     private AvaliacaoResponseDTO mapToResponse(Avaliacao entity) {
         AvaliacaoResponseDTO dto = mapper.map(entity, AvaliacaoResponseDTO.class);
 
-        // Mapeamento de Ponto Turístico (Existente)
+        // Mapeamento de Ponto Turístico
         if (entity.getPontoTuristico() != null) {
             dto.setPontoTuristicoId(entity.getPontoTuristico().getId());
             dto.setNomePontoTuristico(entity.getPontoTuristico().getNome());
