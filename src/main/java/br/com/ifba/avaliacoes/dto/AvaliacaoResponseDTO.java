@@ -13,7 +13,11 @@ public class AvaliacaoResponseDTO {
     private int estrelas;
     private String descricao;
 
-    // Opcional: Para saber a qual ponto se refere (útil em listas gerais)
+    // Dados do Ponto Turístico (se houver)
     private Long pontoTuristicoId;
     private String nomePontoTuristico;
+
+    // [NOVO] Dados do Evento (se houver)
+    private Long eventoId;
+    private String nomeEvento;
 }

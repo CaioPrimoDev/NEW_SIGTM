@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE) // Sem path base fixo, pois varia
+@RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class AvaliacaoController {
 
@@ -26,99 +26,140 @@ public class AvaliacaoController {
     private final UsuarioSession usuarioSession;
     private final ObjectMapperUtill mapper;
 
-    // --- SUB-RECURSOS (Vinculados a Ponto Turístico) ---
+    // ==================================================================================
+    // 1. SALVAR AVALIAÇÃO DE PONTO TURÍSTICO
+    // ==================================================================================
+    @PostMapping(
+            value = "/pontos-turisticos/{pontoId}/avaliacoes/save",
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<AvaliacaoResponseDTO> avaliarPonto(
+            @PathVariable Long pontoId,
+            @RequestBody @Valid AvaliacaoDTO dto) {
 
-    @PostMapping(value = "/pontos-turisticos/{pontoId}/avaliacoes/save", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<AvaliacaoResponseDTO> avaliarPonto(@PathVariable Long pontoId,
-                                                             @RequestBody @Valid AvaliacaoDTO dto) {
-        if (!usuarioSession.isLogado()) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        if (!usuarioSession.isLogado()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
         Usuario usuarioLogado = usuarioSession.getUsuarioLogado();
 
         Avaliacao entity = new Avaliacao();
         entity.setEstrelas(dto.getEstrelas());
         entity.setDescricao(dto.getDescricao());
         entity.setUsuario(usuarioLogado);
+
         if (usuarioLogado.getPessoa() != null) {
             entity.setNomeAutor(usuarioLogado.getPessoa().getNome());
         }
 
         Avaliacao saved = service.saveForPonto(pontoId, entity);
-        return ResponseEntity.status(HttpStatus.CREATED)
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
                 .body(mapToResponse(saved));
     }
 
-    @GetMapping(value = "/pontos-turisticos/{pontoId}/avaliacoes/findall")
-    public ResponseEntity<List<AvaliacaoResponseDTO>> listarPorPonto(@PathVariable Long pontoId) {
-        return ResponseEntity.ok(
-                service.findAllByPonto(pontoId).stream()
-                        .map(this::mapToResponse)
-                        .collect(Collectors.toList())
-        );
-    }
+    // ==================================================================================
+    // 2. SALVAR AVALIAÇÃO DE EVENTO
+    // ==================================================================================
+    @PostMapping(
+            value = "/eventos/{eventoId}/avaliacoes/save",
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<AvaliacaoResponseDTO> avaliarEvento(
+            @PathVariable Long eventoId,
+            @RequestBody @Valid AvaliacaoDTO dto) {
 
-    @GetMapping(value = "/pontos-turisticos/{pontoId}/avaliacoes/find/melhores")
-    public ResponseEntity<List<AvaliacaoResponseDTO>> listarMelhores(@PathVariable Long pontoId) {
-        return ResponseEntity.ok(
-                service.getMelhoresByPonto(pontoId).stream()
-                        .map(this::mapToResponse)
-                        .collect(Collectors.toList())
-        );
-    }
+        if (!usuarioSession.isLogado()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
-    @GetMapping(value = "/pontos-turisticos/{pontoId}/avaliacoes/find/piores")
-    public ResponseEntity<List<AvaliacaoResponseDTO>> listarPiores(@PathVariable Long pontoId) {
-        return ResponseEntity.ok(
-                service.getPioresByPonto(pontoId).stream()
-                        .map(this::mapToResponse)
-                        .collect(Collectors.toList())
-        );
-    }
-
-    // --- RECURSOS GERAIS (/avaliacoes) ---
-
-    @PutMapping(value = "/avaliacoes/update/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<AvaliacaoResponseDTO> atualizar(@PathVariable Long id,
-                                                          @RequestBody @Valid AvaliacaoDTO dto) {
-        if (!usuarioSession.isLogado()) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        Usuario usuarioLogado = usuarioSession.getUsuarioLogado();
 
         Avaliacao entity = new Avaliacao();
         entity.setEstrelas(dto.getEstrelas());
         entity.setDescricao(dto.getDescricao());
-        entity.setNomeAutor(usuarioSession.getUsuarioLogado().getPessoa().getNome());
+        entity.setUsuario(usuarioLogado);
 
-        Avaliacao updated = service.update(id, entity);
-        return ResponseEntity.ok(mapToResponse(updated));
+        if (usuarioLogado.getPessoa() != null) {
+            entity.setNomeAutor(usuarioLogado.getPessoa().getNome());
+        }
+
+        Avaliacao saved = service.saveForEvento(eventoId, entity);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(mapToResponse(saved));
     }
 
-    @DeleteMapping(value = "/avaliacoes/delete/{id}")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        service.delete(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping(value = "/avaliacoes/find/{id}")
-    public ResponseEntity<AvaliacaoResponseDTO> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(mapToResponse(service.findById(id)));
-    }
-
-    @GetMapping(value = "/avaliacoes/find/me")
-    public ResponseEntity<List<AvaliacaoResponseDTO>> minhasAvaliacoes() {
-        if (!usuarioSession.isLogado()) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        Long usuarioId = usuarioSession.getUsuarioLogado().getId();
+    // ==================================================================================
+    // 3. LISTAR AVALIAÇÕES DE UM PONTO ESPECÍFICO (PÚBLICO)
+    // ==================================================================================
+    @GetMapping("/pontos-turisticos/{pontoId}/avaliacoes")
+    public ResponseEntity<List<AvaliacaoResponseDTO>> listarPorPonto(@PathVariable Long pontoId) {
+        // Busca todas as avaliações daquele ponto
+        List<Avaliacao> lista = service.findAllByPonto(pontoId);
 
         return ResponseEntity.ok(
-                service.findByUsuarioId(usuarioId).stream()
+                lista.stream()
                         .map(this::mapToResponse)
                         .collect(Collectors.toList())
         );
     }
 
+    // ==================================================================================
+    // 4. LISTAR AVALIAÇÕES DE UM EVENTO ESPECÍFICO (PÚBLICO) - [NOVO]
+    // ==================================================================================
+    @GetMapping("/eventos/{eventoId}/avaliacoes")
+    public ResponseEntity<List<AvaliacaoResponseDTO>> listarPorEvento(@PathVariable Long eventoId) {
+        // Busca todas as avaliações daquele evento
+        List<Avaliacao> lista = service.findAllByEvento(eventoId);
+
+        return ResponseEntity.ok(
+                lista.stream()
+                        .map(this::mapToResponse)
+                        .collect(Collectors.toList())
+        );
+    }
+
+    // ==================================================================================
+    // 5. LISTAR MINHAS AVALIAÇÕES (USUÁRIO LOGADO)
+    // ==================================================================================
+    @GetMapping("/avaliacoes/find/me")
+    public ResponseEntity<List<AvaliacaoResponseDTO>> minhasAvaliacoes() {
+
+        if (!usuarioSession.isLogado()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        Long usuarioId = usuarioSession.getUsuarioLogado().getId();
+
+        return ResponseEntity.ok(
+                service.findByUsuarioId(usuarioId)
+                        .stream()
+                        .map(this::mapToResponse)
+                        .collect(Collectors.toList())
+        );
+    }
+
+    // ==================================================================================
+    // MÉTODOS AUXILIARES
+    // ==================================================================================
     private AvaliacaoResponseDTO mapToResponse(Avaliacao entity) {
         AvaliacaoResponseDTO dto = mapper.map(entity, AvaliacaoResponseDTO.class);
+
+        // Mapeamento de Ponto Turístico
         if (entity.getPontoTuristico() != null) {
             dto.setPontoTuristicoId(entity.getPontoTuristico().getId());
             dto.setNomePontoTuristico(entity.getPontoTuristico().getNome());
         }
+
+        // Mapeamento de Evento
+        if (entity.getEvento() != null) {
+            dto.setEventoId(entity.getEvento().getId());
+            dto.setNomeEvento(entity.getEvento().getNome());
+        }
+
         return dto;
     }
 }

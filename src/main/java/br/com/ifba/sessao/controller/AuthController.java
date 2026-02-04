@@ -26,29 +26,23 @@ public class AuthController {
     private final ObjectMapperUtill mapper;
 
     @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<SessaoResponseDTO> login(@RequestBody @Valid LoginDTO dto,
-                                                   HttpServletRequest request) {
+    public ResponseEntity<SessaoResponseDTO> login(@RequestBody @Valid LoginDTO dto) {
+
         Usuario usuarioValidado = service.validarLogin(dto.getEmail(), dto.getSenha());
 
-        // --- SOLUÇÃO MANUAL ---
-        HttpSession session = request.getSession(true); // Cria ou recupera a sessão real
-        session.setAttribute("EMAIL_LOGADO", usuarioValidado.getEmail()); // Grava no motor do servidor
+        // Garanta que o bean injetado no controller receba o usuário
+        this.usuarioSession.setUsuarioLogado(usuarioValidado); 
+        
+        // Se o seu service fizer outras coisas (como auditoria), pode manter a chamada abaixo,
+        // mas a linha de cima é a que resolve o 401 do AvaliacaoController.
+        service.registrarLoginNaSessao(usuarioValidado);
 
-        service.setEmailLogado(usuarioValidado.getEmail());
-
-        System.out.println("Login Controller: Email salvo na sessão = " + usuarioValidado.getEmail());
-
-        // 3. Resposta
+        // ... restante do código (mapping e return)
         SessaoResponseDTO response = mapper.map(usuarioValidado, SessaoResponseDTO.class);
-        if (usuarioValidado.getPessoa() != null) {
-            response.setNome(usuarioValidado.getPessoa().getNome());
-        }
-        if (usuarioValidado.getTipo() != null) {
-            response.setTipoUsuario(usuarioValidado.getTipo().getNome());
-        }
-
+        // ...
         return ResponseEntity.ok(response);
     }
+
 
     @PostMapping(value = "/logout") // Logout geralmente não tem body de entrada
     public ResponseEntity<Void> logout() {
